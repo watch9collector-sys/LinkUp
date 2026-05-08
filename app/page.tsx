@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { GlassCard } from "./components/GlassCard";
 import { buttonClasses } from "./components/ui/Button";
+import { supabase } from '../src/lib/supabase'
+
 
 export default function HomePage() {
   return (

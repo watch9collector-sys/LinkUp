@@ -1,10 +1,19 @@
-import type { Metadata } from "next";
+'use client' 
 import { GlassCard } from "../components/GlassCard";
 import { TextLink } from "../components/TextLink";
+import { supabase } from "../../src/lib/supabase"
 
-export const metadata: Metadata = {
-  title: "Admin",
-};
+
+
+const testSignup = async () => {
+  const { data, error } = await supabase.auth.signUp({
+    email: 'test@test.com',
+    password: 'password123'
+  })
+
+  console.log('DATA:', data)
+  console.log('ERROR:', error)
+}
 
 export default function AdminPage() {
   return (
@@ -12,6 +21,16 @@ export default function AdminPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <TextLink href="/">← Back to app</TextLink>
       </div>
+      
+      <button
+  type="button"
+  onClick={testSignup}
+  className="rounded-lg bg-emerald-400 px-4 py-2 font-bold text-black"
+>
+  Test Signup
+</button>
+
+
 
       <GlassCard className="py-10 sm:py-12">
         <h1 className="text-center text-xl font-bold tracking-tight text-white sm:text-2xl">
