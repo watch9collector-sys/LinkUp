@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { useState } from "react";
 import { GlassCard } from "./components/GlassCard";
-import { buttonClasses } from "./components/ui/Button";
+import { Button, buttonClasses } from "./components/ui/Button";
 import { inputClass, labelClass } from "./components/ui/styles";
 import { supabase } from "@/src/lib/supabase";
 import { useAuthSession } from "@/src/hooks/useAuthSession";
+import {
+  authErrorGuidance,
+  getAuthEmailRedirectTo,
+  isLikelyEmailConfirmationPending,
+} from "@/src/lib/authUi";
 import { getDisplayName } from "@/src/lib/userDisplay";
 
 function HomeTile({
@@ -34,38 +39,101 @@ function HomeTile({
   );
 }
 
+type AuthBanner =
+  | { kind: "none" }
+  | { kind: "error"; message: string; showResend: boolean }
+  | { kind: "check_email"; email: string };
+
+const RESEND_SUCCESS = "Another confirmation email is on its way.";
+
 export function HomeClient() {
   const { session, ready } = useAuthSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [banner, setBanner] = useState<AuthBanner>({ kind: "none" });
   const [authBusy, setAuthBusy] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendHint, setResendHint] = useState<string | null>(null);
+
+  function clearBanner() {
+    setBanner({ kind: "none" });
+    setResendHint(null);
+  }
 
   async function handleAuth(e: React.FormEvent) {
     e.preventDefault();
-    setAuthError(null);
+    clearBanner();
     setAuthBusy(true);
     try {
+      const redirectTo = getAuthEmailRedirectTo();
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
-        if (error) throw error;
+        if (error) {
+          const g = authErrorGuidance(error);
+          setBanner({
+            kind: "error",
+            message: g.message,
+            showResend: g.showResend,
+          });
+          return;
+        }
+        setPassword("");
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
+          options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
         });
-        if (error) throw error;
+        if (error) {
+          const g = authErrorGuidance(error);
+          setBanner({
+            kind: "error",
+            message: g.message,
+            showResend: g.showResend,
+          });
+          return;
+        }
+        setPassword("");
+        if (isLikelyEmailConfirmationPending(data.user, data.session)) {
+          setBanner({ kind: "check_email", email: email.trim() });
+        }
       }
-      setPassword("");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Something went wrong";
-      setAuthError(message);
+      const g = authErrorGuidance(err);
+      setBanner({
+        kind: "error",
+        message: g.message,
+        showResend: g.showResend,
+      });
     } finally {
       setAuthBusy(false);
+    }
+  }
+
+  async function handleResendConfirmation() {
+    const target =
+      banner.kind === "check_email" ? banner.email : email.trim();
+    if (!target) return;
+    setResendHint(null);
+    setResendBusy(true);
+    try {
+      const redirectTo = getAuthEmailRedirectTo();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: target,
+        options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
+      });
+      if (error) {
+        setResendHint(error.message);
+        return;
+      }
+      setResendHint(RESEND_SUCCESS);
+    } finally {
+      setResendBusy(false);
     }
   }
 
@@ -93,95 +161,175 @@ export function HomeClient() {
           </p>
         </div>
 
-        <GlassCard className="space-y-5 p-6 sm:p-8">
-          <div className="flex rounded-xl border border-white/[0.06] bg-[#0B0F14]/40 p-1">
-            <button
-              type="button"
-              onClick={() => {
-                setMode("signin");
-                setAuthError(null);
-              }}
-              className={[
-                "flex-1 rounded-lg py-2.5 text-sm font-medium transition",
-                mode === "signin"
-                  ? "bg-white/[0.08] text-white"
-                  : "text-white/45 hover:text-white/75",
-              ].join(" ")}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode("signup");
-                setAuthError(null);
-              }}
-              className={[
-                "flex-1 rounded-lg py-2.5 text-sm font-medium transition",
-                mode === "signup"
-                  ? "bg-white/[0.08] text-white"
-                  : "text-white/45 hover:text-white/75",
-              ].join(" ")}
-            >
-              Create account
-            </button>
-          </div>
-
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div>
-              <label htmlFor="home-email" className={labelClass}>
-                Email
-              </label>
-              <input
-                id="home-email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(ev) => setEmail(ev.target.value)}
-                className={inputClass}
-                placeholder="you@example.com"
-              />
-            </div>
-            <div>
-              <label htmlFor="home-password" className={labelClass}>
-                Password
-              </label>
-              <input
-                id="home-password"
-                type="password"
-                autoComplete={
-                  mode === "signin" ? "current-password" : "new-password"
+        {banner.kind === "check_email" ? (
+          <GlassCard className="space-y-5 p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-white">Confirm your email</h2>
+            <p className="text-[15px] leading-relaxed text-white/65">
+              We sent a confirmation link to{" "}
+              <span className="font-medium text-white/90">{banner.email}</span>.
+              You need to open that link once before you can sign in.
+            </p>
+            <p className="text-sm text-white/50">
+              For local testing you can turn off “Confirm email” under Supabase →
+              Authentication → Providers → Email.
+            </p>
+            {resendHint ? (
+              <p
+                className={
+                  resendHint === RESEND_SUCCESS
+                    ? "text-sm text-emerald-400/90"
+                    : "text-sm text-red-400/90"
                 }
-                required
-                minLength={6}
-                value={password}
-                onChange={(ev) => setPassword(ev.target.value)}
-                className={inputClass}
-                placeholder="••••••••"
-              />
-            </div>
-            {authError ? (
-              <p className="text-sm text-red-400/95" role="alert">
-                {authError}
+                role="status"
+              >
+                {resendHint}
               </p>
             ) : null}
-            <button
-              type="submit"
-              disabled={authBusy}
-              className={[
-                buttonClasses("primary", "lg"),
-                "w-full",
-              ].join(" ")}
-            >
-              {authBusy
-                ? "Please wait…"
-                : mode === "signin"
-                  ? "Continue"
-                  : "Create account"}
-            </button>
-          </form>
-        </GlassCard>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                disabled={resendBusy}
+                onClick={handleResendConfirmation}
+              >
+                {resendBusy ? "Sending…" : "Resend confirmation email"}
+              </Button>
+              <button
+                type="button"
+                className={[
+                  buttonClasses("ghost", "md"),
+                  "text-white/70 underline-offset-2 hover:underline",
+                ].join(" ")}
+                onClick={() => {
+                  clearBanner();
+                  setMode("signin");
+                }}
+              >
+                Back to sign in
+              </button>
+            </div>
+          </GlassCard>
+        ) : (
+          <GlassCard className="space-y-5 p-6 sm:p-8">
+            <div className="flex rounded-xl border border-white/[0.06] bg-[#0B0F14]/40 p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("signin");
+                  clearBanner();
+                }}
+                className={[
+                  "flex-1 rounded-lg py-2.5 text-sm font-medium transition",
+                  mode === "signin"
+                    ? "bg-white/[0.08] text-white"
+                    : "text-white/45 hover:text-white/75",
+                ].join(" ")}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("signup");
+                  clearBanner();
+                }}
+                className={[
+                  "flex-1 rounded-lg py-2.5 text-sm font-medium transition",
+                  mode === "signup"
+                    ? "bg-white/[0.08] text-white"
+                    : "text-white/45 hover:text-white/75",
+                ].join(" ")}
+              >
+                Create account
+              </button>
+            </div>
+
+            <form onSubmit={handleAuth} className="space-y-4">
+              <div>
+                <label htmlFor="home-email" className={labelClass}>
+                  Email
+                </label>
+                <input
+                  id="home-email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(ev) => setEmail(ev.target.value)}
+                  className={inputClass}
+                  placeholder="you@example.com"
+                />
+              </div>
+              <div>
+                <label htmlFor="home-password" className={labelClass}>
+                  Password
+                </label>
+                <input
+                  id="home-password"
+                  type="password"
+                  autoComplete={
+                    mode === "signin" ? "current-password" : "new-password"
+                  }
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(ev) => setPassword(ev.target.value)}
+                  className={inputClass}
+                  placeholder="••••••••"
+                />
+              </div>
+              {mode === "signup" ? (
+                <p className="text-xs leading-relaxed text-white/45">
+                  If email confirmation is enabled in your Supabase project, you
+                  will need to click the link in your inbox before signing in.
+                </p>
+              ) : null}
+              {banner.kind === "error" ? (
+                <div className="space-y-3 rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3">
+                  <p className="text-sm text-red-200/95" role="alert">
+                    {banner.message}
+                  </p>
+                  {banner.showResend ? (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={resendBusy || !email.trim()}
+                        onClick={handleResendConfirmation}
+                      >
+                        {resendBusy ? "Sending…" : "Resend confirmation email"}
+                      </Button>
+                      {resendHint ? (
+                        <p
+                          className={
+                            resendHint === RESEND_SUCCESS
+                              ? "text-xs text-emerald-400/90"
+                              : "text-xs text-red-300/90"
+                          }
+                        >
+                          {resendHint}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <button
+                type="submit"
+                disabled={authBusy}
+                className={[buttonClasses("primary", "lg"), "w-full"].join(" ")}
+              >
+                {authBusy
+                  ? "Please wait…"
+                  : mode === "signin"
+                    ? "Continue"
+                    : "Create account"}
+              </button>
+            </form>
+          </GlassCard>
+        )}
 
         <p className="text-center text-xs text-white/40">
           You can still open Explore as a guest — sign in to host LinkUps and use
