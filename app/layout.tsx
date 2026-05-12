@@ -18,7 +18,8 @@ export const metadata: Metadata = {
     default: "LinkUp",
     template: "%s · LinkUp",
   },
-  description: "Connect with people nearby — discover, shoutouts, and more.",
+  description:
+    "Real-time, location-based meetups — discover nearby LinkUps and show up in the real world.",
 };
 
 export default function RootLayout({
@@ -33,7 +34,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-[#0B0F14] font-sans antialiased">
         <Navbar />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 pb-16">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 pt-6 md:py-8 md:pb-10">
           {children}
         </main>
       </body>

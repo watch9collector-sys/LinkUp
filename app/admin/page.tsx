@@ -1,7 +1,7 @@
 'use client' 
 import { GlassCard } from "../components/GlassCard";
 import { TextLink } from "../components/TextLink";
-import { supabase } from "../../src/lib/supabase"
+import { supabase } from "@/src/lib/supabase";
 
 
 
