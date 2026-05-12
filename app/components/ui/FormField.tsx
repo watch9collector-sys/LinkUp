@@ -52,3 +52,29 @@ export function TextAreaField({
     </FormField>
   );
 }
+
+type SelectFieldProps = {
+  id: string;
+  label: string;
+  children: ReactNode;
+} & React.SelectHTMLAttributes<HTMLSelectElement>;
+
+export function SelectField({
+  id,
+  label,
+  className = "",
+  children,
+  ...rest
+}: SelectFieldProps) {
+  return (
+    <FormField id={id} label={label}>
+      <select
+        id={id}
+        className={[inputClass, className].join(" ")}
+        {...rest}
+      >
+        {children}
+      </select>
+    </FormField>
+  );
+}
