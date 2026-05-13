@@ -159,8 +159,8 @@ export function CreateLinkUpModal({
           <Button type="button" variant="secondary" size="md" onClick={close}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" size="md" disabled={saving}>
-            {saving ? "Publishing…" : "Publish"}
+          <Button type="submit" variant="primary" size="md" loading={saving}>
+            Publish
           </Button>
         </div>
       </form>

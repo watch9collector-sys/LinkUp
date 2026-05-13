@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogoMark } from "./Logo";
-import { buttonClasses } from "./ui/Button";
+import { Button } from "./ui/Button";
 import { supabase } from "@/src/lib/supabase";
 import { useAuthSession } from "@/src/hooks/useAuthSession";
 
@@ -118,12 +118,12 @@ const coreNav = [
 function navLinkClass(active: boolean, compact?: boolean) {
   if (compact) {
     return [
-      "flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-medium tracking-tight transition-colors",
-      active ? "text-emerald-400" : "text-white/50 active:text-white/75",
+      "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-medium tracking-tight transition-colors duration-200",
+      active ? "text-emerald-400" : "text-white/50 active:text-white/80",
     ].join(" ");
   }
   return [
-    "rounded-lg px-3 py-2 text-sm font-medium tracking-tight transition-colors",
+    "inline-flex min-h-[2.5rem] items-center justify-center rounded-lg px-3 py-2 text-sm font-medium tracking-tight transition-colors duration-200",
     active
       ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
       : "border border-transparent text-white/65 hover:border-white/[0.06] hover:bg-white/[0.04] hover:text-white",
@@ -151,8 +151,8 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0B0F14]/80 backdrop-blur-xl backdrop-saturate-150">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:py-3.5">
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0B0F14]/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-5 sm:py-3.5 lg:px-6">
           <Link
             href="/"
             className="flex min-w-0 shrink-0 items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0F14]"
@@ -185,25 +185,26 @@ export function Navbar() {
           <div className="flex shrink-0 items-center gap-2">
             {ready && user ? (
               <>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={handleLogout}
-                  disabled={signingOut}
-                  className="rounded-lg px-2 py-1.5 text-xs font-medium text-white/55 transition hover:bg-white/[0.06] hover:text-white/90 md:hidden"
+                  loading={signingOut}
+                  className="touch-manipulation !px-2 text-xs font-medium text-white/60 hover:text-white/90 md:hidden"
                 >
-                  {signingOut ? "…" : "Log out"}
-                </button>
-                <button
+                  Log out
+                </Button>
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={handleLogout}
-                  disabled={signingOut}
-                  className={[
-                    buttonClasses("secondary", "sm"),
-                    "hidden border-white/[0.08] text-white/85 md:inline-flex",
-                  ].join(" ")}
+                  loading={signingOut}
+                  className="hidden border-white/[0.08] text-white/85 md:inline-flex"
                 >
-                  {signingOut ? "Signing out…" : "Log out"}
-                </button>
+                  Log out
+                </Button>
               </>
             ) : null}
           </div>
@@ -211,10 +212,10 @@ export function Navbar() {
       </header>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.06] bg-[#0B0F14]/92 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.06] bg-[#0B0F14]/92 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2.5 shadow-[0_-12px_40px_-16px_rgba(0,0,0,0.65)] backdrop-blur-xl md:hidden"
         aria-label="Primary"
       >
-        <div className="mx-auto flex max-w-lg px-1">
+        <div className="mx-auto flex max-w-7xl justify-between gap-0.5 px-2 sm:px-4">
           {coreNav.map(({ href, label, Icon }) => {
             const active = isActive(pathname, href);
             return (
@@ -224,8 +225,23 @@ export function Navbar() {
                 className={navLinkClass(active, true)}
                 aria-current={active ? "page" : undefined}
               >
-                <Icon active={active} />
-                <span className="max-w-[4.25rem] truncate">{label}</span>
+                <span className="flex flex-col items-center gap-1">
+                  <span className="flex h-7 items-center justify-center">
+                    <Icon active={active} />
+                  </span>
+                  <span
+                    className={[
+                      "h-0.5 w-6 shrink-0 rounded-full transition-colors duration-200",
+                      active
+                        ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.4)]"
+                        : "bg-transparent",
+                    ].join(" ")}
+                    aria-hidden
+                  />
+                  <span className="max-w-[4.5rem] truncate leading-tight">
+                    {label}
+                  </span>
+                </span>
               </Link>
             );
           })}

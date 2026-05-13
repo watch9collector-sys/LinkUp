@@ -5,10 +5,21 @@ import { EmptyState } from "../components/EmptyState";
 import { GlassCard } from "../components/GlassCard";
 import { LinkUpCard } from "../components/linkups/LinkUpCard";
 import type { MapMeetupMarker } from "../components/MapPlaceholder";
-import { MapPlaceholder } from "../components/MapPlaceholder";
+import {
+  MapPlaceholder,
+  MapPlaceholderSkeleton,
+} from "../components/MapPlaceholder";
 import { PageHeader } from "../components/PageHeader";
+import { ButtonLink } from "../components/ui/Button";
+import { sectionEyebrowClass } from "../components/ui/styles";
 import { linkUpMarkerPosition } from "@/src/lib/linkupsApi";
 import { useLinkUpsFeed } from "@/src/hooks/useLinkUpsFeed";
+
+const exploreEmptyHints = [
+  "Open the LinkUps tab and tap New LinkUp to put something on the map.",
+  "Sign in from Home so you can join with one tap when you find a plan you like.",
+  "Check back later — new meetups can appear any time.",
+] as const;
 
 export function ExploreClient() {
   const { items, loading, error, busyId, join, leave, user, ready } =
@@ -25,25 +36,20 @@ export function ExploreClient() {
   });
 
   const signedIn = Boolean(user);
+  const showSkeleton = !ready || loading;
+  const showMap = ready && !loading;
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-6 sm:space-y-7 lg:space-y-8">
       <PageHeader
         title="Explore"
         description="Live LinkUps around you — tap in, join what is happening, show up in the real world."
         action={
-          <Link
-            href="/linkups"
-            className="inline-flex items-center justify-center rounded-xl bg-gradient-to-b from-[#4ADE80] via-[#22C55E] to-[#16A34A] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_24px_rgba(34,197,94,0.28)] ring-1 ring-emerald-300/25 transition hover:from-[#6EE7B7] hover:via-[#34D399] hover:to-[#22C55E]"
-          >
+          <ButtonLink href="/linkups" variant="primary" size="md">
             Host a LinkUp
-          </Link>
+          </ButtonLink>
         }
       />
-
-      {!ready || loading ? (
-        <p className="text-center text-sm text-white/45">Loading nearby…</p>
-      ) : null}
 
       {error ? (
         <GlassCard className="border-amber-500/15 bg-amber-500/5">
@@ -61,21 +67,21 @@ export function ExploreClient() {
         </GlassCard>
       ) : null}
 
-      <MapPlaceholder markers={markers} />
+      {showSkeleton ? <MapPlaceholderSkeleton /> : null}
+      {showMap ? <MapPlaceholder markers={markers} /> : null}
 
       {ready && !loading && items.length === 0 && !error ? (
         <EmptyState
           title="Nothing scheduled yet"
           description="When people publish LinkUps, they show up here and on the map — check back soon or host one from the LinkUps tab."
+          hints={exploreEmptyHints}
         />
       ) : null}
 
       {items.length > 0 ? (
-        <section className="space-y-3">
-          <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">
-            Nearby LinkUps
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
+        <section className="space-y-3 lg:space-y-4">
+          <h2 className={sectionEyebrowClass}>Nearby LinkUps</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {items.map((lu) => (
               <LinkUpCard
                 key={lu.id}
@@ -92,7 +98,10 @@ export function ExploreClient() {
 
       {!signedIn ? (
         <p className="text-center text-xs text-white/40">
-          <Link href="/" className="text-emerald-400/90 underline-offset-2 hover:underline">
+          <Link
+            href="/"
+            className="rounded-md text-emerald-400/90 underline-offset-2 outline-none transition-colors hover:text-emerald-300 hover:underline focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0F14]"
+          >
             Sign in
           </Link>{" "}
           to join a LinkUp.

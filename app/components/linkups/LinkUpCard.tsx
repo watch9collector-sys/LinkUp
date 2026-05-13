@@ -43,9 +43,10 @@ export function LinkUpCard({
   return (
     <article
       className={[
-        "rounded-2xl border p-4 transition duration-200 sm:p-5",
+        "rounded-2xl border p-4 transition-[transform,box-shadow,border-color,background-color] duration-300 ease-out sm:p-5",
         "border-white/[0.06] bg-[#111827]/80 ring-1 ring-inset ring-white/[0.03]",
-        "hover:border-white/[0.09] hover:bg-[#111827]/92",
+        "focus-within:border-emerald-500/15",
+        "motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-white/[0.1] motion-safe:hover:bg-[#111827]/92 motion-reduce:hover:translate-y-0",
         linkup.you_joined || linkup.you_host
           ? "shadow-[0_0_0_1px_rgba(34,197,94,0.12)]"
           : "",
@@ -150,25 +151,25 @@ export function LinkUpCard({
             type="button"
             variant="secondary"
             size="sm"
-            disabled={busy}
+            loading={busy}
             onClick={() => onLeave(linkup.id)}
           >
-            {busy ? "…" : "Leave"}
+            Leave
           </Button>
         ) : signedIn ? (
           <Button
             type="button"
             variant="primary"
             size="sm"
-            disabled={busy}
+            loading={busy}
             onClick={() => onJoin(linkup.id)}
           >
-            {busy ? "…" : "Join"}
+            Join
           </Button>
         ) : (
           <Link
             href="/"
-            className="inline-flex items-center rounded-xl border border-white/[0.1] px-3 py-2 text-xs font-semibold text-white/75 transition hover:bg-white/[0.06]"
+            className="inline-flex touch-manipulation items-center justify-center rounded-xl border border-white/[0.1] px-3.5 py-2 text-xs font-semibold text-white/80 transition duration-200 hover:bg-white/[0.06] active:translate-y-px"
           >
             Sign in to join
           </Link>

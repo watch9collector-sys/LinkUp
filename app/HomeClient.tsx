@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import { GlassCard } from "./components/GlassCard";
-import { Button, buttonClasses } from "./components/ui/Button";
-import { inputClass, labelClass } from "./components/ui/styles";
+import { Button, ButtonLink, buttonClasses } from "./components/ui/Button";
+import { PageLoading } from "./components/ui/LoadingStates";
+import { inputClass, labelClass, sectionEyebrowClass } from "./components/ui/styles";
 import { supabase } from "@/src/lib/supabase";
 import { useAuthSession } from "@/src/hooks/useAuthSession";
 import {
@@ -25,17 +26,74 @@ function HomeTile({
 }) {
   return (
     <Link href={href} className="group block">
-      <GlassCard className="h-full border-white/[0.05] p-5 transition duration-200 group-hover:border-emerald-500/20 group-hover:bg-[#0f172a]/90">
+      <GlassCard className="h-full border-white/[0.05] p-5 transition-[transform,box-shadow,border-color,background-color] duration-200 ease-out group-hover:-translate-y-0.5 group-hover:border-emerald-500/20 group-hover:bg-[#0f172a]/90 motion-reduce:group-hover:translate-y-0">
         <h2 className="text-base font-semibold tracking-tight text-white">
           {title}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-white/60">{subtitle}</p>
-        <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-emerald-400/90 group-hover:text-emerald-300">
+        <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-emerald-400/90 transition-colors group-hover:text-emerald-300">
           Open
           <span aria-hidden>→</span>
         </span>
       </GlassCard>
     </Link>
+  );
+}
+
+function OnboardingChecklist() {
+  const steps = [
+    {
+      href: "/explore",
+      title: "Explore what is live",
+      subtitle: "See nearby LinkUps on the map and list.",
+    },
+    {
+      href: "/linkups",
+      title: "Host or join a LinkUp",
+      subtitle: "Put a real plan on the calendar in a few taps.",
+    },
+    {
+      href: "/profile/edit",
+      title: "Polish your profile",
+      subtitle: "Add a display name and a short bio so hosts recognize you.",
+    },
+  ] as const;
+
+  return (
+    <GlassCard className="border-white/[0.06] px-5 py-5 sm:px-6 sm:py-6">
+      <p className={sectionEyebrowClass}>Get started</p>
+      <p className="mt-2 text-sm leading-relaxed text-white/60">
+        Three quick steps to get the most out of LinkUp.
+      </p>
+      <ul className="mt-5 space-y-2.5">
+        {steps.map((step, index) => (
+          <li key={step.href}>
+            <Link
+              href={step.href}
+              className="group flex items-start gap-3 rounded-xl border border-white/[0.06] bg-[#0B0F14]/35 p-4 transition duration-200 hover:border-emerald-500/25 hover:bg-[#0B0F14]/55 active:scale-[0.99] motion-reduce:active:scale-100"
+            >
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/12 text-xs font-semibold text-emerald-300/95 ring-1 ring-emerald-500/20">
+                {index + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-white">
+                  {step.title}
+                </span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-white/50">
+                  {step.subtitle}
+                </span>
+              </span>
+              <span
+                className="shrink-0 pt-1 text-white/35 transition group-hover:text-emerald-400/90"
+                aria-hidden
+              >
+                →
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </GlassCard>
   );
 }
 
@@ -138,11 +196,7 @@ export function HomeClient() {
   }
 
   if (!ready) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center text-sm text-white/50">
-        Loading…
-      </div>
-    );
+    return <PageLoading message="One moment…" />;
   }
 
   if (!session?.user) {
@@ -190,10 +244,10 @@ export function HomeClient() {
                 type="button"
                 variant="secondary"
                 size="md"
-                disabled={resendBusy}
+                loading={resendBusy}
                 onClick={handleResendConfirmation}
               >
-                {resendBusy ? "Sending…" : "Resend confirmation email"}
+                Resend confirmation email
               </Button>
               <button
                 type="button"
@@ -296,10 +350,11 @@ export function HomeClient() {
                         type="button"
                         variant="secondary"
                         size="sm"
-                        disabled={resendBusy || !email.trim()}
+                        disabled={!email.trim()}
+                        loading={resendBusy}
                         onClick={handleResendConfirmation}
                       >
-                        {resendBusy ? "Sending…" : "Resend confirmation email"}
+                        Resend confirmation email
                       </Button>
                       {resendHint ? (
                         <p
@@ -316,17 +371,15 @@ export function HomeClient() {
                   ) : null}
                 </div>
               ) : null}
-              <button
+              <Button
                 type="submit"
-                disabled={authBusy}
-                className={[buttonClasses("primary", "lg"), "w-full"].join(" ")}
+                variant="primary"
+                size="lg"
+                fullWidth
+                loading={authBusy}
               >
-                {authBusy
-                  ? "Please wait…"
-                  : mode === "signin"
-                    ? "Continue"
-                    : "Create account"}
-              </button>
+                {mode === "signin" ? "Continue" : "Create account"}
+              </Button>
             </form>
           </GlassCard>
         )}
@@ -344,9 +397,7 @@ export function HomeClient() {
   return (
     <div className="space-y-8 sm:space-y-10">
       <section className="text-center md:text-left">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-400/75">
-          Today
-        </p>
+        <p className={[sectionEyebrowClass, "text-emerald-400/75"].join(" ")}>Today</p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
           Hey, {first}
         </h1>
@@ -355,23 +406,22 @@ export function HomeClient() {
           inbox — stay intentional.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
-          <Link
+          <ButtonLink
             href="/explore"
-            className={[buttonClasses("primary", "md"), "inline-flex justify-center sm:min-w-[9rem]"].join(
-              " ",
-            )}
+            variant="primary"
+            size="md"
+            className="justify-center sm:min-w-[10rem]"
           >
             Explore nearby
-          </Link>
-          <Link
+          </ButtonLink>
+          <ButtonLink
             href="/linkups"
-            className={[
-              buttonClasses("secondary", "md"),
-              "inline-flex justify-center border-white/[0.08] sm:min-w-[9rem]",
-            ].join(" ")}
+            variant="secondary"
+            size="md"
+            className="justify-center sm:min-w-[10rem]"
           >
             Start a LinkUp
-          </Link>
+          </ButtonLink>
         </div>
       </section>
 
@@ -393,15 +443,7 @@ export function HomeClient() {
         />
       </div>
 
-      <GlassCard className="border-white/[0.05] px-5 py-4 sm:px-6">
-        <p className="text-xs font-medium uppercase tracking-wider text-white/40">
-          Next up
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-white/65">
-          Onboarding, live discovery, map data, messaging, and notifications — built
-          step by step on this foundation.
-        </p>
-      </GlassCard>
+      <OnboardingChecklist />
     </div>
   );
 }

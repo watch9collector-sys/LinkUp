@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { GlassCard } from "../components/GlassCard";
 import { buttonClasses } from "../components/ui/Button";
+import { PageLoading } from "../components/ui/LoadingStates";
+import { sectionEyebrowClass } from "../components/ui/styles";
 import { useAuthSession } from "@/src/hooks/useAuthSession";
 import { getDisplayName, getInitials } from "@/src/lib/userDisplay";
 
@@ -21,11 +23,7 @@ export function ProfilePanel() {
   const [ghostMode, setGhostMode] = useState(false);
 
   if (!ready) {
-    return (
-      <div className="mx-auto flex w-full max-w-xl justify-center py-16 text-sm text-white/50">
-        Loading…
-      </div>
-    );
+    return <PageLoading message="Loading profile…" />;
   }
 
   if (!user) {
@@ -37,7 +35,7 @@ export function ProfilePanel() {
         </p>
         <Link
           href="/"
-          className={buttonClasses("primary", "md", false) + " inline-flex"}
+          className={buttonClasses("primary", "md", false) + " inline-flex touch-manipulation justify-center"}
         >
           Go to Home
         </Link>
@@ -72,7 +70,9 @@ export function ProfilePanel() {
           ) : null}
           <Link
             href="/profile/edit"
-            className={[buttonClasses("secondary", "md", false), "mt-5"].join(" ")}
+            className={[buttonClasses("secondary", "md", false), "mt-5 touch-manipulation"].join(
+              " ",
+            )}
           >
             Edit profile
           </Link>
@@ -80,9 +80,7 @@ export function ProfilePanel() {
       </GlassCard>
 
       <GlassCard className="border-white/[0.06]">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">
-          Visibility
-        </h2>
+        <h2 className={sectionEyebrowClass}>Visibility</h2>
         <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-[#0B0F14]/35 px-4 py-3.5">
           <div>
             <p className="text-sm font-medium text-white">Ghost mode</p>
@@ -94,7 +92,7 @@ export function ProfilePanel() {
             aria-checked={ghostMode}
             onClick={() => setGhostMode((v) => !v)}
             className={[
-              "relative h-7 w-12 shrink-0 rounded-full transition-colors",
+              "relative h-8 w-[3.25rem] shrink-0 rounded-full transition-colors duration-300 ease-out",
               ghostMode
                 ? "bg-emerald-500 shadow-[0_0_12px_rgba(34,197,94,0.35)]"
                 : "bg-white/12",
@@ -102,7 +100,7 @@ export function ProfilePanel() {
           >
             <span
               className={[
-                "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform",
+                "absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ease-out",
                 ghostMode ? "translate-x-5" : "translate-x-0",
               ].join(" ")}
             />
@@ -111,15 +109,13 @@ export function ProfilePanel() {
       </GlassCard>
 
       <GlassCard className="border-white/[0.06]">
-        <h2 className="text-xs font-medium uppercase tracking-wider text-white/40">
-          Support & legal
-        </h2>
+        <h2 className={sectionEyebrowClass}>Support & legal</h2>
         <ul className="mt-3 divide-y divide-white/[0.06] rounded-xl border border-white/[0.06] bg-[#0B0F14]/30">
           {legalLinks.map(({ href, label }) => (
             <li key={href}>
               <Link
                 href={href}
-                className="flex items-center justify-between gap-3 px-4 py-3.5 text-[15px] font-medium text-white/85 transition hover:bg-white/[0.04]"
+                className="flex min-h-[3rem] items-center justify-between gap-3 px-4 py-3.5 text-[15px] font-medium text-white/85 transition hover:bg-white/[0.04] active:bg-white/[0.06]"
               >
                 <span>{label}</span>
                 <span className="text-white/30" aria-hidden>

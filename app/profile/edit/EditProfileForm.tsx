@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { GlassCard } from "../../components/GlassCard";
-import { Button } from "../../components/ui/Button";
+import { Button, ButtonLink } from "../../components/ui/Button";
+import { PageLoading } from "../../components/ui/LoadingStates";
 import { TextLink } from "../../components/TextLink";
 import { inputClass, labelClass } from "../../components/ui/styles";
 import { supabase } from "@/src/lib/supabase";
@@ -15,6 +15,8 @@ function readMetaString(meta: Record<string, unknown>, key: string): string {
   const v = meta[key];
   return typeof v === "string" ? v : "";
 }
+
+const BIO_MAX = 280;
 
 function ProfileFieldsForm({ user }: { user: User }) {
   const router = useRouter();
@@ -104,9 +106,13 @@ function ProfileFieldsForm({ user }: { user: User }) {
             value={bio}
             onChange={(ev) => setBio(ev.target.value)}
             rows={4}
+            maxLength={BIO_MAX}
             className={`${inputClass} resize-y min-h-[6rem]`}
             placeholder="A short line about you…"
           />
+          <p className="mt-1.5 text-right text-xs tabular-nums text-white/40">
+            {bio.length}/{BIO_MAX}
+          </p>
         </div>
 
         {error ? (
@@ -114,15 +120,12 @@ function ProfileFieldsForm({ user }: { user: User }) {
             {error}
           </p>
         ) : null}
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <Link
-            href="/profile"
-            className="inline-flex items-center justify-center rounded-xl border border-white/[0.12] px-5 py-2.5 text-sm font-semibold text-white/85 transition hover:bg-white/[0.06]"
-          >
+        <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end sm:gap-3">
+          <ButtonLink href="/profile" variant="secondary" size="md" fullWidth className="sm:w-auto sm:min-w-[7.5rem]">
             Cancel
-          </Link>
-          <Button type="submit" variant="primary" size="md" disabled={saving}>
-            {saving ? "Saving…" : "Save changes"}
+          </ButtonLink>
+          <Button type="submit" variant="primary" size="md" loading={saving} fullWidth className="sm:w-auto sm:min-w-[9rem]">
+            Save changes
           </Button>
         </div>
       </form>
@@ -135,9 +138,9 @@ export function EditProfileForm() {
 
   if (!ready) {
     return (
-      <GlassCard className="p-10 text-center text-sm text-white/55">
-        Loading…
-      </GlassCard>
+      <div className="mx-auto w-full max-w-xl py-6">
+        <PageLoading message="Loading profile…" />
+      </div>
     );
   }
 
