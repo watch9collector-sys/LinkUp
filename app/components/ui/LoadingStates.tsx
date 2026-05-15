@@ -1,13 +1,15 @@
+import { LogoMark } from "../Logo";
 import { Spinner } from "./Spinner";
 
 export function PageLoading({ message = "Loading…" }: { message?: string }) {
   return (
     <div
-      className="flex min-h-[32vh] flex-col items-center justify-center gap-3 py-10"
+      className="flex min-h-[32vh] flex-col items-center justify-center gap-4 py-10"
       role="status"
       aria-live="polite"
     >
-      <Spinner className="h-9 w-9 text-emerald-400/90" />
+      <LogoMark size="md" className="opacity-95" />
+      <Spinner className="h-8 w-8 text-emerald-400/90" />
       <p className="text-sm text-white/50">{message}</p>
     </div>
   );

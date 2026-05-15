@@ -1,3 +1,14 @@
+This is a [Next.js](https://nextjs.org) app for **LinkUp** (V1 MVP).
+
+## Local development
+
+- **Node:** use **20+** (see `.nvmrc`).
+- **Env:** add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`.
+- **Dev server:** `npm run dev -- --port 3030` (binds to `127.0.0.1` by default to avoid `uv_interface_addresses` issues on some setups). For LAN testing: `npm run dev:lan -- --port 3030`.
+- **Supabase tables:** after migrations, run `npm run verify:supabase`.
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

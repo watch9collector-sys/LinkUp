@@ -11,11 +11,28 @@ export function useAuthSession() {
   useEffect(() => {
     let cancelled = false;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      setSession(data.session);
-      setReady(true);
-    });
+    void supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+            console.warn("[LinkUp] getSession:", error.message);
+          }
+          setSession(null);
+        } else {
+          setSession(data.session ?? null);
+        }
+        setReady(true);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+          console.warn("[LinkUp] getSession failed", err);
+        }
+        setSession(null);
+        setReady(true);
+      });
 
     const {
       data: { subscription },

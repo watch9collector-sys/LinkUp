@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AuthHeroBrand } from "./components/Logo";
 import { GlassCard } from "./components/GlassCard";
 import { Button, ButtonLink, buttonClasses } from "./components/ui/Button";
 import { PageLoading } from "./components/ui/LoadingStates";
@@ -203,10 +204,8 @@ export function HomeClient() {
     return (
       <div className="mx-auto flex max-w-lg flex-col gap-8">
         <div className="text-center">
-          <p className="text-xs font-medium uppercase tracking-[0.22em] text-emerald-400/80">
-            LinkUp
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          <AuthHeroBrand eyebrowWordmark />
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
             Meet in real life
           </h1>
           <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-white/62">

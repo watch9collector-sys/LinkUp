@@ -143,10 +143,16 @@ export function Navbar() {
 
   async function handleLogout() {
     setSigningOut(true);
-    await supabase.auth.signOut();
-    router.push("/");
-    router.refresh();
-    setSigningOut(false);
+    try {
+      await supabase.auth.signOut();
+      router.push("/");
+      router.refresh();
+    } catch {
+      router.push("/");
+      router.refresh();
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   return (
