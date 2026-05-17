@@ -5,6 +5,7 @@ import { GlassCard } from "../components/GlassCard";
 import { TextLink } from "../components/TextLink";
 import { Button } from "../components/ui/Button";
 import { TextAreaField } from "../components/ui/FormField";
+import { SUPPORT_EMAIL } from "@/src/lib/support";
 
 export default function DeleteAccountPage() {
   const [confirmed, setConfirmed] = useState(false);
@@ -25,13 +26,15 @@ export default function DeleteAccountPage() {
           Delete account
         </h1>
         <p className="mt-2 text-[15px] leading-relaxed text-white/72">
-          Request permanent deletion of your account and associated data. This
-          demo does not call a server.
+          Request permanent deletion of your account and associated data. For
+          support, privacy requests, account issues, or safety concerns,
+          contact: <span className="text-emerald-300">{SUPPORT_EMAIL}</span>.
         </p>
 
         {submitted ? (
           <p className="mt-8 text-center text-[15px] text-white/88">
-            Request received in this demo. In production we would email a
+            Request received. We may follow up from{" "}
+            <span className="text-emerald-300">{SUPPORT_EMAIL}</span> with a
             confirmation and processing timeline.
           </p>
         ) : (

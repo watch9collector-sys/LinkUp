@@ -44,19 +44,19 @@ function HomeTile({
 function OnboardingChecklist() {
   const steps = [
     {
+      href: "/profile/edit",
+      title: "Set up your profile",
+      subtitle: "Add a name and short bio so hosts know who is joining.",
+    },
+    {
       href: "/explore",
       title: "Explore what is live",
-      subtitle: "See nearby LinkUps on the map and list.",
+      subtitle: "Tap a map pin to preview nearby LinkUps.",
     },
     {
       href: "/linkups",
       title: "Host or join a LinkUp",
       subtitle: "Put a real plan on the calendar in a few taps.",
-    },
-    {
-      href: "/profile/edit",
-      title: "Polish your profile",
-      subtitle: "Add a display name and a short bio so hosts recognize you.",
     },
   ] as const;
 

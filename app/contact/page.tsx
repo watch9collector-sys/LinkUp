@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { GlassCard } from "../components/GlassCard";
 import { PageHeader } from "../components/PageHeader";
-import { Button } from "../components/ui/Button";
+import { Button, ButtonLink } from "../components/ui/Button";
 import { TextAreaField, TextInput } from "../components/ui/FormField";
+import { SUPPORT_EMAIL } from "@/src/lib/support";
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
@@ -18,15 +19,26 @@ export default function ContactPage() {
     <div className="mx-auto w-full max-w-xl space-y-8">
       <PageHeader
         title="Contact"
-        description="Questions, partnerships, or support — we read every message."
+        description="Support, privacy requests, account help, and safety reports."
       />
 
       <GlassCard>
+        <div className="mb-6 rounded-2xl border border-emerald-500/10 bg-[#0B0F14]/35 p-4 text-sm leading-relaxed text-white/68">
+          For support, privacy requests, account issues, or safety concerns,
+          contact:{" "}
+          <span className="font-medium text-emerald-300">{SUPPORT_EMAIL}</span>
+        </div>
         {sent ? (
-          <p className="text-center text-[15px] leading-relaxed text-white/88">
-            Thanks — your message was captured in this demo. Connect the form to
-            your API to deliver it for real.
-          </p>
+          <div className="space-y-5 text-center">
+            <p className="text-[15px] leading-relaxed text-white/88">
+              Thanks — your request was captured locally in this MVP form. For
+              urgent support, privacy, account, or safety concerns, contact{" "}
+              <span className="text-emerald-300">{SUPPORT_EMAIL}</span>.
+            </p>
+            <ButtonLink href="/profile" variant="secondary" size="md">
+              Back to app
+            </ButtonLink>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             <TextInput
@@ -51,7 +63,7 @@ export default function ContactPage() {
               name="subject"
               label="Subject"
               required
-              placeholder="What is this about?"
+              placeholder="Account, privacy, report, or support"
             />
             <TextAreaField
               id="message"
@@ -64,6 +76,9 @@ export default function ContactPage() {
             <Button type="submit" variant="primary" size="md" fullWidth>
               Submit
             </Button>
+            <ButtonLink href="/profile" variant="secondary" size="md" fullWidth>
+              Back to app
+            </ButtonLink>
           </form>
         )}
       </GlassCard>

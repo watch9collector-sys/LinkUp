@@ -5,6 +5,7 @@ import { EmptyState } from "../components/EmptyState";
 import { GlassCard } from "../components/GlassCard";
 import { CreateLinkUpModal } from "../components/linkups/CreateLinkUpModal";
 import { LinkUpCard } from "../components/linkups/LinkUpCard";
+import { LinkUpDetailsModal } from "../components/linkups/LinkUpDetailsModal";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/ui/Button";
 import { FeedGridSkeleton } from "../components/ui/LoadingStates";
@@ -51,11 +52,13 @@ export function LinkUpsClient() {
   const { items, loading, error, busyId, join, leave, user, ready, refresh } =
     useLinkUpsFeed();
   const [modalOpen, setModalOpen] = useState(false);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
 
   const openModal = useCallback(() => setModalOpen(true), []);
   const closeModal = useCallback(() => setModalOpen(false), []);
 
   const signedIn = Boolean(user);
+  const selectedLinkUp = items.find((item) => item.id === detailsId) ?? null;
 
   return (
     <div className="space-y-6 sm:space-y-7 lg:space-y-8">
@@ -129,6 +132,7 @@ export function LinkUpsClient() {
               busy={busyId === lu.id}
               onJoin={join}
               onLeave={leave}
+              onDetails={setDetailsId}
             />
           ))}
         </div>
@@ -144,6 +148,15 @@ export function LinkUpsClient() {
           }}
         />
       ) : null}
+      <LinkUpDetailsModal
+        open={Boolean(selectedLinkUp)}
+        linkup={selectedLinkUp}
+        signedIn={signedIn}
+        busy={selectedLinkUp ? busyId === selectedLinkUp.id : false}
+        onClose={() => setDetailsId(null)}
+        onJoin={join}
+        onLeave={leave}
+      />
     </div>
   );
 }

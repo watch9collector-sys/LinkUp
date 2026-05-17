@@ -131,17 +131,6 @@ export async function leaveLinkUp(
   return { error: error ? new Error(wrapPostgrest(error.message)) : null };
 }
 
-/** Stable pseudo-coordinates for map markers (no lat/lng yet). */
-export function linkUpMarkerPosition(id: string): { topPct: number; leftPct: number } {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) {
-    h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  const left = 16 + (h % 68);
-  const top = 18 + ((h >> 8) % 58);
-  return { leftPct: Math.min(left, 84), topPct: Math.min(top, 78) };
-}
-
 export function formatLinkUpTime(iso: string): string {
   try {
     return new Intl.DateTimeFormat(undefined, {

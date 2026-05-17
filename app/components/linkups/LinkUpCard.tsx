@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { LinkUpView } from "@/src/lib/linkupsTypes";
 import { formatLinkUpTime } from "@/src/lib/linkupsApi";
+import { Avatar } from "../Avatar";
 import { Button } from "../ui/Button";
 
 type LinkUpCardProps = {
@@ -12,6 +13,7 @@ type LinkUpCardProps = {
   busy?: boolean;
   onJoin: (id: string) => void;
   onLeave: (id: string) => void;
+  onDetails?: (id: string) => void;
 };
 
 export function LinkUpCard({
@@ -20,6 +22,7 @@ export function LinkUpCard({
   busy = false,
   onJoin,
   onLeave,
+  onDetails,
 }: LinkUpCardProps) {
   const [showAttendees, setShowAttendees] = useState(false);
 
@@ -42,6 +45,7 @@ export function LinkUpCard({
 
   return (
     <article
+      id={`linkup-${linkup.id}`}
       className={[
         "rounded-2xl border p-4 transition-[transform,box-shadow,border-color,background-color] duration-300 ease-out sm:p-5",
         "border-white/[0.06] bg-[#111827]/80 ring-1 ring-inset ring-white/[0.03]",
@@ -86,11 +90,7 @@ export function LinkUpCard({
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-[#0B0F14] text-xs font-semibold text-emerald-300/95">
-          {linkup.host_display_name.trim()
-            ? linkup.host_display_name.slice(0, 2).toUpperCase()
-            : "?"}
-        </div>
+        <Avatar label={linkup.host_display_name} size="sm" />
         <div className="min-w-0">
           <p className="text-xs text-white/40">Host</p>
           <p className="truncate text-sm font-medium text-white/90">
@@ -145,7 +145,9 @@ export function LinkUpCard({
 
       <div className="mt-4 flex flex-wrap gap-2">
         {linkup.you_host ? (
-          <p className="text-xs text-white/45">You are hosting this LinkUp.</p>
+          <p className="self-center text-xs text-white/45">
+            You are hosting this LinkUp.
+          </p>
         ) : signedIn && linkup.you_joined ? (
           <Button
             type="button"
@@ -174,6 +176,17 @@ export function LinkUpCard({
             Sign in to join
           </Link>
         )}
+        {onDetails ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="cursor-pointer text-white/62 hover:text-emerald-300"
+            onClick={() => onDetails(linkup.id)}
+          >
+            Details
+          </Button>
+        ) : null}
       </div>
     </article>
   );

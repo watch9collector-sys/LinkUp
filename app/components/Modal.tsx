@@ -8,30 +8,39 @@ type ModalProps = {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  size?: "md" | "lg";
 };
 
-export function Modal({ open, title, onClose, children }: ModalProps) {
+const modalSizeClass: Record<NonNullable<ModalProps["size"]>, string> = {
+  md: "max-w-md",
+  lg: "max-w-2xl",
+};
+
+export function Modal({ open, title, onClose, children, size = "md" }: ModalProps) {
   if (!open) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-6"
+      className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-4 md:p-5"
       role="presentation"
     >
       <button
         type="button"
-        className="absolute inset-0 bg-[#0B0F14]/85 backdrop-blur-md transition-opacity duration-200 motion-reduce:transition-none"
+        className="absolute inset-0 bg-[#0B0F14]/82 backdrop-blur-md transition-opacity duration-200 motion-reduce:transition-none"
         aria-label="Close dialog"
         onClick={onClose}
       />
       <div
-        className="relative z-10 flex w-full max-w-md flex-col px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-4 sm:max-h-[min(90dvh,36rem)] sm:p-0 sm:pb-0 sm:pt-0"
+        className={[
+          "relative z-10 flex w-full flex-col px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-4 sm:max-h-[min(92dvh,38rem)] sm:p-0 sm:pb-0 sm:pt-0",
+          modalSizeClass[size],
+        ].join(" ")}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <GlassCard className="linkup-modal-panel flex max-h-[min(92dvh,36rem)] flex-col overflow-hidden border-emerald-500/10 p-0 shadow-2xl shadow-black/60 sm:max-h-[min(90dvh,36rem)]">
+        <GlassCard className="linkup-modal-panel flex max-h-[min(92dvh,38rem)] flex-col overflow-hidden border-emerald-500/10 p-0 shadow-2xl shadow-black/60 sm:max-h-[min(92dvh,38rem)]">
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/[0.07] px-5 pb-4 pt-5 sm:px-6 sm:pt-6">
             <h2
               id="modal-title"

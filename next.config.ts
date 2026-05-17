@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
       { source: "/discover/:path*", destination: "/explore", permanent: true },
       { source: "/shoutouts", destination: "/linkups", permanent: true },
       { source: "/shoutouts/:path*", destination: "/linkups", permanent: true },
+      { source: "/safety", destination: "/child-safety", permanent: true },
     ];
   },
 };

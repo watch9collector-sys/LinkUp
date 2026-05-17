@@ -2,20 +2,20 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Avatar } from "../components/Avatar";
 import { GlassCard } from "../components/GlassCard";
 import { buttonClasses } from "../components/ui/Button";
 import { PageLoading } from "../components/ui/LoadingStates";
 import { sectionEyebrowClass } from "../components/ui/styles";
 import { useAuthSession } from "@/src/hooks/useAuthSession";
-import { getDisplayName, getInitials } from "@/src/lib/userDisplay";
+import { getDisplayName } from "@/src/lib/userDisplay";
 
 const legalLinks = [
   { href: "/contact", label: "Contact" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
-  { href: "/safety", label: "Child safety" },
+  { href: "/child-safety", label: "Child safety" },
   { href: "/delete", label: "Delete account" },
-  { href: "/admin", label: "Admin" },
 ] as const;
 
 export function ProfilePanel() {
@@ -44,21 +44,24 @@ export function ProfilePanel() {
   }
 
   const name = getDisplayName(user);
-  const initials = getInitials(user);
   const email = user.email ?? "";
   const bio =
     typeof (user.user_metadata as Record<string, unknown>).bio === "string"
       ? ((user.user_metadata as Record<string, unknown>).bio as string)
       : "";
+  const role =
+    typeof (user.user_metadata as Record<string, unknown>).role === "string"
+      ? ((user.user_metadata as Record<string, unknown>).role as string)
+      : "";
+  const showAdmin =
+    role === "admin" || process.env.NODE_ENV === "development";
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-5">
       <GlassCard className="overflow-hidden border-white/[0.06] p-0">
         <div className="h-28 bg-gradient-to-br from-[#022c16] via-[#064e3b] to-[#0B0F14]" />
         <div className="-mt-12 flex flex-col items-center px-6 pb-6 pt-0">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-emerald-500/30 bg-[#0B0F14] text-sm font-semibold tracking-wide text-emerald-300 ring-1 ring-white/[0.06]">
-            {initials}
-          </div>
+          <Avatar user={user} label={name} size="lg" />
           <h1 className="mt-4 text-xl font-semibold tracking-tight text-white">
             {name}
           </h1>
@@ -124,6 +127,19 @@ export function ProfilePanel() {
               </Link>
             </li>
           ))}
+          {showAdmin ? (
+            <li>
+              <Link
+                href="/admin"
+                className="flex min-h-[3rem] items-center justify-between gap-3 px-4 py-3.5 text-[15px] font-medium text-white/85 transition hover:bg-white/[0.04] active:bg-white/[0.06]"
+              >
+                <span>Admin</span>
+                <span className="text-white/30" aria-hidden>
+                  →
+                </span>
+              </Link>
+            </li>
+          ) : null}
         </ul>
       </GlassCard>
     </div>

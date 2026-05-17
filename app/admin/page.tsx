@@ -1,37 +1,42 @@
-'use client' 
+"use client";
+
 import { GlassCard } from "../components/GlassCard";
+import { PageLoading } from "../components/ui/LoadingStates";
 import { TextLink } from "../components/TextLink";
-import { supabase } from "@/src/lib/supabase";
-
-
-
-const testSignup = async () => {
-  const { data, error } = await supabase.auth.signUp({
-    email: 'test@test.com',
-    password: 'password123'
-  })
-
-  console.log('DATA:', data)
-  console.log('ERROR:', error)
-}
+import { useAuthSession } from "@/src/hooks/useAuthSession";
 
 export default function AdminPage() {
+  const { user, ready } = useAuthSession();
+  const role =
+    typeof (user?.user_metadata as Record<string, unknown> | undefined)?.role ===
+    "string"
+      ? ((user?.user_metadata as Record<string, unknown>).role as string)
+      : "";
+  const allowed = role === "admin" || process.env.NODE_ENV === "development";
+
+  if (!ready) return <PageLoading message="Checking access…" />;
+
+  if (!user || !allowed) {
+    return (
+      <div className="mx-auto w-full max-w-xl space-y-6">
+        <TextLink href="/profile">← Back to app</TextLink>
+        <GlassCard className="py-10 text-center">
+          <h1 className="text-xl font-semibold tracking-tight text-white">
+            Admin access required
+          </h1>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/58">
+            This area is only available to LinkUp admins.
+          </p>
+        </GlassCard>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <TextLink href="/">← Back to app</TextLink>
       </div>
-      
-      <button
-  type="button"
-  onClick={testSignup}
-  className="rounded-lg bg-emerald-400 px-4 py-2 font-bold text-black"
->
-  Test Signup
-</button>
-
-
-
       <GlassCard className="py-10 sm:py-12">
         <h1 className="text-center text-xl font-bold tracking-tight text-white sm:text-2xl">
           Admin Dashboard: User Reports

@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { Avatar } from "../../components/Avatar";
 import { GlassCard } from "../../components/GlassCard";
 import { Button, ButtonLink } from "../../components/ui/Button";
 import { PageLoading } from "../../components/ui/LoadingStates";
@@ -17,6 +18,9 @@ function readMetaString(meta: Record<string, unknown>, key: string): string {
 }
 
 const BIO_MAX = 280;
+const AVATAR_BUCKET = "profile-photos";
+const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 function ProfileFieldsForm({ user }: { user: User }) {
   const router = useRouter();
@@ -26,19 +30,83 @@ function ProfileFieldsForm({ user }: { user: User }) {
     readMetaString(meta, "display_name"),
   );
   const [bio, setBio] = useState(() => readMetaString(meta, "bio"));
+  const [avatarUrl, setAvatarUrl] = useState(() => readMetaString(meta, "avatar_url"));
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState("");
+  const avatarPreviewRef = useRef("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(
+    () => () => {
+      if (avatarPreviewRef.current) {
+        URL.revokeObjectURL(avatarPreviewRef.current);
+      }
+    },
+    [],
+  );
+
+  function handleAvatarChange(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0];
+    setError(null);
+    if (!file) return;
+    if (!AVATAR_TYPES.includes(file.type)) {
+      setError("Use a JPG, PNG, or WebP image for your profile photo.");
+      ev.target.value = "";
+      return;
+    }
+    if (file.size > AVATAR_MAX_BYTES) {
+      setError("Profile photos must be 2 MB or smaller.");
+      ev.target.value = "";
+      return;
+    }
+    if (avatarPreviewRef.current) {
+      URL.revokeObjectURL(avatarPreviewRef.current);
+    }
+    const nextPreview = URL.createObjectURL(file);
+    avatarPreviewRef.current = nextPreview;
+    setAvatarPreview(nextPreview);
+    setAvatarFile(file);
+  }
+
+  function removeAvatar() {
+    if (avatarPreviewRef.current) {
+      URL.revokeObjectURL(avatarPreviewRef.current);
+      avatarPreviewRef.current = "";
+    }
+    setAvatarFile(null);
+    setAvatarPreview("");
+    setAvatarUrl("");
+  }
+
+  async function uploadAvatarIfNeeded(): Promise<string> {
+    if (!avatarFile) return avatarUrl.trim();
+    const ext = avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${user.id}/avatar.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from(AVATAR_BUCKET)
+      .upload(path, avatarFile, {
+        cacheControl: "3600",
+        contentType: avatarFile.type,
+        upsert: true,
+      });
+    if (uploadError) throw uploadError;
+    const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+    return data.publicUrl;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSaving(true);
     try {
+      const nextAvatarUrl = await uploadAvatarIfNeeded();
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           full_name: fullName.trim(),
           display_name: displayName.trim(),
           bio: bio.trim(),
+          avatar_url: nextAvatarUrl,
         },
       });
       if (updateError) throw updateError;
@@ -61,6 +129,39 @@ function ProfileFieldsForm({ user }: { user: User }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-[#0B0F14]/35 p-4">
+          <Avatar
+            user={user}
+            src={avatarPreview || avatarUrl}
+            label={displayName || fullName || user.email}
+            size="md"
+          />
+          <div className="min-w-0 flex-1">
+            <label htmlFor="avatar" className={labelClass}>
+              Profile photo
+            </label>
+            <input
+              id="avatar"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={handleAvatarChange}
+              className="mt-2 block w-full cursor-pointer text-xs text-white/55 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-500/12 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-emerald-200 hover:file:bg-emerald-500/18"
+            />
+            <p className="mt-1.5 text-xs leading-relaxed text-white/40">
+              Optional. JPG, PNG, or WebP under 2 MB. Initials stay as fallback.
+            </p>
+            {avatarPreview || avatarUrl ? (
+              <button
+                type="button"
+                onClick={removeAvatar}
+                className="mt-2 text-xs font-medium text-white/50 underline-offset-2 transition hover:text-emerald-300 hover:underline"
+              >
+                Remove photo
+              </button>
+            ) : null}
+          </div>
+        </div>
+
         <div>
           <p className={labelClass}>Email</p>
           <p className="mt-1 text-sm text-white/70">{user.email ?? "—"}</p>

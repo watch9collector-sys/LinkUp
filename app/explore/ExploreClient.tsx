@@ -1,19 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { EmptyState } from "../components/EmptyState";
 import { GlassCard } from "../components/GlassCard";
+import { LinkUpMap, LinkUpMapSkeleton } from "../components/LinkUpMap";
 import { LinkUpCard } from "../components/linkups/LinkUpCard";
-import type { MapMeetupMarker } from "../components/MapPlaceholder";
-import {
-  MapPlaceholder,
-  MapPlaceholderSkeleton,
-} from "../components/MapPlaceholder";
+import { LinkUpDetailsModal } from "../components/linkups/LinkUpDetailsModal";
 import { PageHeader } from "../components/PageHeader";
 import { ButtonLink } from "../components/ui/Button";
 import { sectionEyebrowClass } from "../components/ui/styles";
-import { linkUpMarkerPosition } from "@/src/lib/linkupsApi";
 import { useLinkUpsFeed } from "@/src/hooks/useLinkUpsFeed";
+import { linkUpMapPoint } from "@/src/lib/linkupLocations";
 
 const exploreEmptyHints = [
   "Open the LinkUps tab and tap New LinkUp to put something on the map.",
@@ -24,16 +22,10 @@ const exploreEmptyHints = [
 export function ExploreClient() {
   const { items, loading, error, busyId, join, leave, user, ready } =
     useLinkUpsFeed();
+  const [detailsId, setDetailsId] = useState<string | null>(null);
 
-  const markers: MapMeetupMarker[] = items.map((lu) => {
-    const pos = linkUpMarkerPosition(lu.id);
-    return {
-      id: lu.id,
-      label: lu.title,
-      topPct: pos.topPct,
-      leftPct: pos.leftPct,
-    };
-  });
+  const mapPoints = items.map(linkUpMapPoint);
+  const selectedLinkUp = items.find((item) => item.id === detailsId) ?? null;
 
   const signedIn = Boolean(user);
   const showSkeleton = !ready || loading;
@@ -67,8 +59,17 @@ export function ExploreClient() {
         </GlassCard>
       ) : null}
 
-      {showSkeleton ? <MapPlaceholderSkeleton /> : null}
-      {showMap ? <MapPlaceholder markers={markers} /> : null}
+      {showSkeleton ? <LinkUpMapSkeleton /> : null}
+      {showMap ? (
+        <LinkUpMap
+          points={mapPoints}
+          signedIn={signedIn}
+          busyId={busyId}
+          onJoin={join}
+          onLeave={leave}
+          onDetails={setDetailsId}
+        />
+      ) : null}
 
       {ready && !loading && items.length === 0 && !error ? (
         <EmptyState
@@ -90,6 +91,7 @@ export function ExploreClient() {
                 busy={busyId === lu.id}
                 onJoin={join}
                 onLeave={leave}
+                onDetails={setDetailsId}
               />
             ))}
           </div>
@@ -107,6 +109,15 @@ export function ExploreClient() {
           to join a LinkUp.
         </p>
       ) : null}
+      <LinkUpDetailsModal
+        open={Boolean(selectedLinkUp)}
+        linkup={selectedLinkUp}
+        signedIn={signedIn}
+        busy={selectedLinkUp ? busyId === selectedLinkUp.id : false}
+        onClose={() => setDetailsId(null)}
+        onJoin={join}
+        onLeave={leave}
+      />
     </div>
   );
 }

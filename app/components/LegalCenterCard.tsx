@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { GlassCard } from "./GlassCard";
+import { ButtonLink } from "./ui/Button";
 
 type LegalCenterCardProps = {
   title: string;
@@ -26,6 +27,11 @@ export function LegalCenterCard({
             {children}
           </div>
         ) : null}
+        <div className="mt-8 flex justify-center border-t border-white/[0.06] pt-6">
+          <ButtonLink href="/profile" variant="secondary" size="md">
+            Back to app
+          </ButtonLink>
+        </div>
       </GlassCard>
     </div>
   );
