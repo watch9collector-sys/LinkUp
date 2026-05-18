@@ -235,7 +235,7 @@ function ProfileFieldsForm({ user }: { user: User }) {
 }
 
 export function EditProfileForm() {
-  const { user, ready } = useAuthSession();
+  const { user, ready } = useAuthSession({ skipInitialLoading: true });
 
   if (!ready) {
     return (

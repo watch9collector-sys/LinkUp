@@ -8,7 +8,11 @@ import { Button, ButtonLink, buttonClasses } from "./components/ui/Button";
 import { PageLoading } from "./components/ui/LoadingStates";
 import { inputClass, labelClass, sectionEyebrowClass } from "./components/ui/styles";
 import { supabase } from "@/src/lib/supabase";
-import { useAuthSession } from "@/src/hooks/useAuthSession";
+import {
+  refreshAuthSessionSnapshot,
+  setAuthSessionSnapshot,
+  useAuthSession,
+} from "@/src/hooks/useAuthSession";
 import {
   authErrorGuidance,
   getAuthEmailRedirectTo,
@@ -104,13 +108,94 @@ type AuthBanner =
   | { kind: "check_email"; email: string };
 
 const RESEND_SUCCESS = "Another confirmation email is on its way.";
+const AUTH_REQUEST_TIMEOUT_MS = 10000;
+const AUTH_DEBUG =
+  process.env.NODE_ENV !== "production" ||
+  process.env.NEXT_PUBLIC_LINKUP_AUTH_DEBUG === "true";
+
+function authErrorDetail(err: unknown): string {
+  if (!err || typeof err !== "object") return String(err);
+  const record = err as Record<string, unknown>;
+  const parts = [
+    record.name ? `name=${String(record.name)}` : "",
+    record.code ? `code=${String(record.code)}` : "",
+    record.status ? `status=${String(record.status)}` : "",
+    record.message ? `message=${String(record.message)}` : "",
+  ].filter(Boolean);
+  return parts.join(" | ") || String(err);
+}
+
+function authStorageDebug() {
+  if (typeof window === "undefined") return "window unavailable";
+  try {
+    const testKey = "__linkup_storage_test__";
+    window.localStorage.setItem(testKey, "1");
+    window.localStorage.removeItem(testKey);
+    const keys = Object.keys(window.localStorage).filter(
+      (key) => key.includes("linkup") || key.includes("supabase"),
+    );
+    return `localStorage=ok authKeys=${keys.length ? keys.join(",") : "none"}`;
+  } catch (err: unknown) {
+    return `localStorage=failed ${authErrorDetail(err)}`;
+  }
+}
+
+function reportAuthDebug(label: string, payload: Record<string, unknown>) {
+  if (typeof window === "undefined") return;
+  if (!AUTH_DEBUG) return;
+
+  const body = {
+    label,
+    origin: window.location.origin,
+    userAgent: window.navigator.userAgent,
+    timestamp: new Date().toISOString(),
+    ...payload,
+  };
+
+  try {
+    const blob = new Blob([JSON.stringify(body)], {
+      type: "application/json",
+    });
+    if (window.navigator.sendBeacon?.("/api/auth-debug", blob)) return;
+  } catch {
+    // Fall through to fetch below.
+  }
+
+  void fetch("/api/auth-debug", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+    keepalive: true,
+  }).catch(() => {
+    // Debug reporting must never affect login.
+  });
+}
+
+function withAuthTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      reject(new Error(message));
+    }, AUTH_REQUEST_TIMEOUT_MS);
+
+    promise
+      .then((value) => {
+        window.clearTimeout(timeout);
+        resolve(value);
+      })
+      .catch((err: unknown) => {
+        window.clearTimeout(timeout);
+        reject(err);
+      });
+  });
+}
 
 export function HomeClient() {
-  const { session, ready } = useAuthSession();
+  const { session, ready } = useAuthSession({ skipInitialLoading: true });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [banner, setBanner] = useState<AuthBanner>({ kind: "none" });
+  const [authDebug, setAuthDebug] = useState<string[]>([]);
   const [authBusy, setAuthBusy] = useState(false);
   const [resendBusy, setResendBusy] = useState(false);
   const [resendHint, setResendHint] = useState<string | null>(null);
@@ -118,6 +203,7 @@ export function HomeClient() {
   function clearBanner() {
     setBanner({ kind: "none" });
     setResendHint(null);
+    setAuthDebug([]);
   }
 
   async function handleAuth(e: React.FormEvent) {
@@ -127,26 +213,155 @@ export function HomeClient() {
     try {
       const redirectTo = getAuthEmailRedirectTo();
       if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
+        const startedDebug = [
+          `origin=${window.location.origin}`,
+          `redirectTo=${redirectTo ?? "none"}`,
+          authStorageDebug(),
+        ];
+        reportAuthDebug("signIn started", {
+          redirectTo: redirectTo ?? null,
+          storage: authStorageDebug(),
         });
+        setAuthDebug(startedDebug);
+        const { data, error } = await withAuthTimeout(
+          supabase.auth.signInWithPassword({
+            email: email.trim(),
+            password,
+          }),
+          "Sign in timed out. Check your Wi-Fi connection and try again.",
+        );
+        const resultDebug = [
+          ...startedDebug,
+          `signIn error=${error ? authErrorDetail(error) : "none"}`,
+          `signIn hasSession=${Boolean(data.session)}`,
+          `signIn hasUser=${Boolean(data.user)}`,
+          `signIn userId=${data.user?.id ?? "none"}`,
+          `signIn emailConfirmed=${data.user?.email_confirmed_at ? "yes" : "no-or-unknown"}`,
+        ];
+        reportAuthDebug("signIn result", {
+          error: error
+            ? {
+                name: error.name,
+                code: error.code,
+                status: error.status,
+                message: error.message,
+              }
+            : null,
+          hasSession: Boolean(data.session),
+          hasUser: Boolean(data.user),
+          userId: data.user?.id ?? null,
+          emailConfirmed: Boolean(data.user?.email_confirmed_at),
+          sessionUserId: data.session?.user?.id ?? null,
+          expiresAt: data.session?.expires_at ?? null,
+          storage: authStorageDebug(),
+        });
+        setAuthDebug(resultDebug);
+        if (AUTH_DEBUG) {
+          console.info("[LinkUp] signInWithPassword result", {
+            errorCode: error?.code ?? null,
+            errorMessage: error?.message ?? null,
+            errorStatus: error?.status ?? null,
+            session: data.session,
+            hasSession: Boolean(data.session),
+            hasUser: Boolean(data.user),
+            user: data.user,
+            origin: window.location.origin,
+            storage: authStorageDebug(),
+          });
+        }
         if (error) {
-          const g = authErrorGuidance(error);
           setBanner({
             kind: "error",
-            message: g.message,
-            showResend: g.showResend,
+            message: `Supabase sign-in error: ${authErrorDetail(error)}`,
+            showResend: authErrorGuidance(error).showResend,
           });
           return;
         }
+        if (!data.session) {
+          setAuthSessionSnapshot(null);
+          setBanner({
+            kind: "error",
+            message:
+              "Sign in did not return a session. If email confirmation is enabled, confirm this account first, then try again.",
+            showResend: Boolean(email.trim()),
+          });
+          return;
+        }
+        setAuthSessionSnapshot(data.session ?? null);
+        void refreshAuthSessionSnapshot().then((nextSession) => {
+          const refreshDebug = [
+            ...resultDebug,
+            `postLogin getSession hasSession=${Boolean(nextSession)}`,
+            `postLogin getSession userId=${nextSession?.user?.id ?? "none"}`,
+            authStorageDebug(),
+          ];
+          setAuthDebug(refreshDebug);
+          reportAuthDebug("post-login getSession", {
+            hasSession: Boolean(nextSession),
+            userId: nextSession?.user?.id ?? null,
+            storage: authStorageDebug(),
+          });
+          if (AUTH_DEBUG) {
+            console.info("[LinkUp] post-login session check", {
+              hasSession: Boolean(nextSession),
+              session: nextSession,
+              storage: authStorageDebug(),
+            });
+          }
+        });
+        void withAuthTimeout(
+          supabase.auth.getUser(),
+          "getUser timed out after sign in.",
+        )
+          .then(({ data: userData, error: userError }) => {
+            reportAuthDebug("post-login getUser", {
+              hasUser: Boolean(userData.user),
+              userId: userData.user?.id ?? null,
+              error: userError
+                ? {
+                    name: userError.name,
+                    code: userError.code,
+                    status: userError.status,
+                    message: userError.message,
+                  }
+                : null,
+            });
+            if (AUTH_DEBUG) {
+              console.info("[LinkUp] post-login getUser", {
+                hasUser: Boolean(userData.user),
+                user: userData.user,
+                error: userError,
+              });
+            }
+            if (userError) {
+              setAuthDebug((lines) => [
+                ...lines,
+                `postLogin getUser error=${authErrorDetail(userError)}`,
+              ]);
+            }
+          })
+          .catch((err: unknown) => {
+            reportAuthDebug("post-login getUser failed", {
+              error: authErrorDetail(err),
+            });
+            if (AUTH_DEBUG) {
+              console.warn("[LinkUp] post-login getUser failed", err);
+            }
+            setAuthDebug((lines) => [
+              ...lines,
+              `postLogin getUser failed=${authErrorDetail(err)}`,
+            ]);
+          });
         setPassword("");
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
-        });
+        const { data, error } = await withAuthTimeout(
+          supabase.auth.signUp({
+            email: email.trim(),
+            password,
+            options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
+          }),
+          "Account creation timed out. Check your Wi-Fi connection and try again.",
+        );
         if (error) {
           const g = authErrorGuidance(error);
           setBanner({
@@ -156,6 +371,7 @@ export function HomeClient() {
           });
           return;
         }
+        setAuthSessionSnapshot(data.session ?? null);
         setPassword("");
         if (isLikelyEmailConfirmationPending(data.user, data.session)) {
           setBanner({ kind: "check_email", email: email.trim() });
@@ -163,9 +379,20 @@ export function HomeClient() {
       }
     } catch (err: unknown) {
       const g = authErrorGuidance(err);
+      reportAuthDebug("auth exception", {
+        error: authErrorDetail(err),
+        storage: authStorageDebug(),
+      });
+      setAuthDebug((lines) => [
+        ...lines,
+        `auth exception=${authErrorDetail(err)}`,
+      ]);
+      if (AUTH_DEBUG) {
+        console.warn("[LinkUp] auth exception", err);
+      }
       setBanner({
         kind: "error",
-        message: g.message,
+        message: `Auth request failed: ${authErrorDetail(err) || g.message}`,
         showResend: g.showResend,
       });
     } finally {
@@ -368,6 +595,18 @@ export function HomeClient() {
                       ) : null}
                     </div>
                   ) : null}
+                </div>
+              ) : null}
+              {authDebug.length ? (
+                <div className="rounded-xl border border-emerald-500/15 bg-[#06120c]/70 px-4 py-3 text-left">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/80">
+                    Auth debug
+                  </p>
+                  <ul className="mt-2 space-y-1 text-[11px] leading-relaxed text-white/55">
+                    {authDebug.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
               <Button

@@ -6,7 +6,10 @@ import { useState } from "react";
 import { LogoMark } from "./Logo";
 import { Button } from "./ui/Button";
 import { supabase } from "@/src/lib/supabase";
-import { useAuthSession } from "@/src/hooks/useAuthSession";
+import {
+  setAuthSessionSnapshot,
+  useAuthSession,
+} from "@/src/hooks/useAuthSession";
 
 function iconClass(active: boolean) {
   return active ? "text-emerald-400" : "text-white/45";
@@ -145,9 +148,11 @@ export function Navbar() {
     setSigningOut(true);
     try {
       await supabase.auth.signOut();
+      setAuthSessionSnapshot(null);
       router.push("/");
       router.refresh();
     } catch {
+      setAuthSessionSnapshot(null);
       router.push("/");
       router.refresh();
     } finally {

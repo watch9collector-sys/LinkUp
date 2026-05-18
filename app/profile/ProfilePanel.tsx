@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Avatar } from "../components/Avatar";
 import { GlassCard } from "../components/GlassCard";
 import { buttonClasses } from "../components/ui/Button";
@@ -19,8 +19,20 @@ const legalLinks = [
 ] as const;
 
 export function ProfilePanel() {
-  const { user, ready } = useAuthSession();
+  const { session, user, ready } = useAuthSession({ skipInitialLoading: true });
   const [ghostMode, setGhostMode] = useState(false);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production") {
+      console.info("[LinkUp] profile auth state", {
+        ready,
+        hasSession: Boolean(session),
+        hasUser: Boolean(user),
+        userId: user?.id ?? null,
+        note: "Profile uses Supabase Auth user metadata; no separate profile table fetch runs here.",
+      });
+    }
+  }, [ready, session, user]);
 
   if (!ready) {
     return <PageLoading message="Loading profile…" />;
@@ -33,6 +45,17 @@ export function ProfilePanel() {
         <p className="text-[15px] text-white/60">
           Sign in from Home to manage your account.
         </p>
+        {process.env.NODE_ENV !== "production" ? (
+          <div className="rounded-xl border border-emerald-500/15 bg-[#06120c]/70 px-4 py-3 text-left text-[11px] leading-relaxed text-white/55">
+            <p className="font-semibold uppercase tracking-[0.18em] text-emerald-300/80">
+              Profile auth debug
+            </p>
+            <p className="mt-2">ready={String(ready)}</p>
+            <p>session={session ? "present" : "missing"}</p>
+            <p>user={user ? "present" : "missing"}</p>
+            <p>No separate profile table fetch runs on this page.</p>
+          </div>
+        ) : null}
         <Link
           href="/"
           className={buttonClasses("primary", "md", false) + " inline-flex touch-manipulation justify-center"}
