@@ -10,7 +10,8 @@ import { PageLoading } from "../../components/ui/LoadingStates";
 import { TextLink } from "../../components/TextLink";
 import { inputClass, labelClass } from "../../components/ui/styles";
 import { supabase } from "@/src/lib/supabase";
-import { useAuthSession } from "@/src/hooks/useAuthSession";
+import { refreshAuthSessionSnapshot, useAuthSession } from "@/src/hooks/useAuthSession";
+import { getAuthEmailRedirectTo } from "@/src/lib/authUi";
 
 function readMetaString(meta: Record<string, unknown>, key: string): string {
   const v = meta[key];
@@ -20,7 +21,14 @@ function readMetaString(meta: Record<string, unknown>, key: string): string {
 const BIO_MAX = 280;
 const AVATAR_BUCKET = "profile-photos";
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
-const AVATAR_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const BANNER_MAX_BYTES = 4 * 1024 * 1024;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function fileExtension(file: File) {
+  if (file.type === "image/png") return "png";
+  if (file.type === "image/webp") return "webp";
+  return "jpg";
+}
 
 function ProfileFieldsForm({ user }: { user: User }) {
   const router = useRouter();
@@ -30,43 +38,83 @@ function ProfileFieldsForm({ user }: { user: User }) {
     readMetaString(meta, "display_name"),
   );
   const [bio, setBio] = useState(() => readMetaString(meta, "bio"));
+  const [email, setEmail] = useState(() => user.email ?? "");
   const [avatarUrl, setAvatarUrl] = useState(() => readMetaString(meta, "avatar_url"));
+  const [bannerUrl, setBannerUrl] = useState(() => readMetaString(meta, "banner_url"));
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState("");
+  const [bannerPreview, setBannerPreview] = useState("");
   const avatarPreviewRef = useRef("");
+  const bannerPreviewRef = useRef("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(
     () => () => {
       if (avatarPreviewRef.current) {
         URL.revokeObjectURL(avatarPreviewRef.current);
       }
+      if (bannerPreviewRef.current) {
+        URL.revokeObjectURL(bannerPreviewRef.current);
+      }
     },
     [],
   );
 
-  function handleAvatarChange(ev: React.ChangeEvent<HTMLInputElement>) {
+  function handleImageChange(
+    ev: React.ChangeEvent<HTMLInputElement>,
+    options: {
+      label: "profile photo" | "profile banner";
+      maxBytes: number;
+      previewRef: React.MutableRefObject<string>;
+      setPreview: (value: string) => void;
+      setFile: (value: File | null) => void;
+    },
+  ) {
     const file = ev.target.files?.[0];
     setError(null);
+    setNotice(null);
     if (!file) return;
-    if (!AVATAR_TYPES.includes(file.type)) {
-      setError("Use a JPG, PNG, or WebP image for your profile photo.");
+    if (!IMAGE_TYPES.includes(file.type)) {
+      setError(`Use a JPG, PNG, or WebP image for your ${options.label}.`);
       ev.target.value = "";
       return;
     }
-    if (file.size > AVATAR_MAX_BYTES) {
-      setError("Profile photos must be 2 MB or smaller.");
+    if (file.size > options.maxBytes) {
+      const mb = Math.round(options.maxBytes / 1024 / 1024);
+      setError(`${options.label === "profile banner" ? "Profile banners" : "Profile photos"} must be ${mb} MB or smaller.`);
       ev.target.value = "";
       return;
     }
-    if (avatarPreviewRef.current) {
-      URL.revokeObjectURL(avatarPreviewRef.current);
+    if (options.previewRef.current) {
+      URL.revokeObjectURL(options.previewRef.current);
     }
     const nextPreview = URL.createObjectURL(file);
-    avatarPreviewRef.current = nextPreview;
-    setAvatarPreview(nextPreview);
-    setAvatarFile(file);
+    options.previewRef.current = nextPreview;
+    options.setPreview(nextPreview);
+    options.setFile(file);
+  }
+
+  function handleBannerChange(ev: React.ChangeEvent<HTMLInputElement>) {
+    handleImageChange(ev, {
+      label: "profile banner",
+      maxBytes: BANNER_MAX_BYTES,
+      previewRef: bannerPreviewRef,
+      setPreview: setBannerPreview,
+      setFile: setBannerFile,
+    });
+  }
+
+  function handleAvatarChange(ev: React.ChangeEvent<HTMLInputElement>) {
+    handleImageChange(ev, {
+      label: "profile photo",
+      maxBytes: AVATAR_MAX_BYTES,
+      previewRef: avatarPreviewRef,
+      setPreview: setAvatarPreview,
+      setFile: setAvatarFile,
+    });
   }
 
   function removeAvatar() {
@@ -79,15 +127,28 @@ function ProfileFieldsForm({ user }: { user: User }) {
     setAvatarUrl("");
   }
 
-  async function uploadAvatarIfNeeded(): Promise<string> {
-    if (!avatarFile) return avatarUrl.trim();
-    const ext = avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = `${user.id}/avatar.${ext}`;
+  function removeBanner() {
+    if (bannerPreviewRef.current) {
+      URL.revokeObjectURL(bannerPreviewRef.current);
+      bannerPreviewRef.current = "";
+    }
+    setBannerFile(null);
+    setBannerPreview("");
+    setBannerUrl("");
+  }
+
+  async function uploadProfileImageIfNeeded(
+    file: File | null,
+    currentUrl: string,
+    name: "avatar" | "banner",
+  ): Promise<string> {
+    if (!file) return currentUrl.trim();
+    const path = `${user.id}/${name}.${fileExtension(file)}`;
     const { error: uploadError } = await supabase.storage
       .from(AVATAR_BUCKET)
-      .upload(path, avatarFile, {
+      .upload(path, file, {
         cacheControl: "3600",
-        contentType: avatarFile.type,
+        contentType: file.type,
         upsert: true,
       });
     if (uploadError) throw uploadError;
@@ -95,21 +156,49 @@ function ProfileFieldsForm({ user }: { user: User }) {
     return data.publicUrl;
   }
 
+  async function uploadAvatarIfNeeded(): Promise<string> {
+    return uploadProfileImageIfNeeded(avatarFile, avatarUrl, "avatar");
+  }
+
+  async function uploadBannerIfNeeded(): Promise<string> {
+    return uploadProfileImageIfNeeded(bannerFile, bannerUrl, "banner");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     setSaving(true);
     try {
       const nextAvatarUrl = await uploadAvatarIfNeeded();
+      const nextBannerUrl = await uploadBannerIfNeeded();
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           full_name: fullName.trim(),
           display_name: displayName.trim(),
           bio: bio.trim(),
           avatar_url: nextAvatarUrl,
+          banner_url: nextBannerUrl,
         },
       });
       if (updateError) throw updateError;
+
+      const nextEmail = email.trim();
+      const currentEmail = user.email?.trim() ?? "";
+      if (nextEmail && nextEmail !== currentEmail) {
+        const { error: emailError } = await supabase.auth.updateUser(
+          { email: nextEmail },
+          { emailRedirectTo: getAuthEmailRedirectTo() },
+        );
+        if (emailError) throw emailError;
+        setNotice(
+          "Profile saved. Check your inbox to confirm the email change before using the new address to sign in.",
+        );
+        await refreshAuthSessionSnapshot();
+        return;
+      }
+
+      await refreshAuthSessionSnapshot();
       router.push("/profile");
       router.refresh();
     } catch (err: unknown) {
@@ -129,6 +218,40 @@ function ProfileFieldsForm({ user }: { user: User }) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="rounded-2xl border border-white/[0.06] bg-[#0B0F14]/35 p-4">
+          <label htmlFor="banner" className={labelClass}>
+            Profile banner
+          </label>
+          <div
+            className="mt-3 h-28 rounded-xl border border-white/[0.06] bg-gradient-to-br from-[#022c16] via-[#064e3b] to-[#0B0F14] bg-cover bg-center"
+            style={
+              bannerPreview || bannerUrl
+                ? { backgroundImage: `url(${bannerPreview || bannerUrl})` }
+                : undefined
+            }
+            aria-hidden
+          />
+          <input
+            id="banner"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={handleBannerChange}
+            className="mt-3 block w-full cursor-pointer text-xs text-white/55 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-500/12 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-emerald-200 hover:file:bg-emerald-500/18"
+          />
+          <p className="mt-1.5 text-xs leading-relaxed text-white/40">
+            Optional. JPG, PNG, or WebP under 4 MB.
+          </p>
+          {bannerPreview || bannerUrl ? (
+            <button
+              type="button"
+              onClick={removeBanner}
+              className="mt-2 text-xs font-medium text-white/50 underline-offset-2 transition hover:text-emerald-300 hover:underline"
+            >
+              Remove banner
+            </button>
+          ) : null}
+        </div>
+
         <div className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-[#0B0F14]/35 p-4">
           <Avatar
             user={user}
@@ -163,10 +286,21 @@ function ProfileFieldsForm({ user }: { user: User }) {
         </div>
 
         <div>
-          <p className={labelClass}>Email</p>
-          <p className="mt-1 text-sm text-white/70">{user.email ?? "—"}</p>
+          <label htmlFor="email" className={labelClass}>
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(ev) => setEmail(ev.target.value)}
+            className={inputClass}
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
           <p className="mt-1 text-xs text-white/45">
-            Email is managed in Supabase Auth; contact support to change it.
+            Email changes use Supabase Auth confirmation. You may need to confirm
+            the new address before it becomes active.
           </p>
         </div>
 
@@ -219,6 +353,11 @@ function ProfileFieldsForm({ user }: { user: User }) {
         {error ? (
           <p className="text-sm text-red-400/95" role="alert">
             {error}
+          </p>
+        ) : null}
+        {notice ? (
+          <p className="text-sm leading-relaxed text-emerald-300/90" role="status">
+            {notice}
           </p>
         ) : null}
         <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end sm:gap-3">

@@ -72,6 +72,10 @@ export function ProfilePanel() {
     typeof (user.user_metadata as Record<string, unknown>).bio === "string"
       ? ((user.user_metadata as Record<string, unknown>).bio as string)
       : "";
+  const bannerUrl =
+    typeof (user.user_metadata as Record<string, unknown>).banner_url === "string"
+      ? ((user.user_metadata as Record<string, unknown>).banner_url as string)
+      : "";
   const role =
     typeof (user.user_metadata as Record<string, unknown>).role === "string"
       ? ((user.user_metadata as Record<string, unknown>).role as string)
@@ -82,7 +86,12 @@ export function ProfilePanel() {
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-5">
       <GlassCard className="overflow-hidden border-white/[0.06] p-0">
-        <div className="h-28 bg-gradient-to-br from-[#022c16] via-[#064e3b] to-[#0B0F14]" />
+        <div
+          className="h-28 bg-gradient-to-br from-[#022c16] via-[#064e3b] to-[#0B0F14] bg-cover bg-center"
+          style={
+            bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined
+          }
+        />
         <div className="-mt-12 flex flex-col items-center px-6 pb-6 pt-0">
           <Avatar user={user} label={name} size="lg" />
           <h1 className="mt-4 text-xl font-semibold tracking-tight text-white">
