@@ -72,9 +72,13 @@ export function ProfilePanel() {
     typeof (user.user_metadata as Record<string, unknown>).bio === "string"
       ? ((user.user_metadata as Record<string, unknown>).bio as string)
       : "";
+  const avatarUrl =
+    typeof (user.user_metadata as Record<string, unknown>).avatar_url === "string"
+      ? ((user.user_metadata as Record<string, unknown>).avatar_url as string).trim()
+      : "";
   const bannerUrl =
     typeof (user.user_metadata as Record<string, unknown>).banner_url === "string"
-      ? ((user.user_metadata as Record<string, unknown>).banner_url as string)
+      ? ((user.user_metadata as Record<string, unknown>).banner_url as string).trim()
       : "";
   const role =
     typeof (user.user_metadata as Record<string, unknown>).role === "string"
@@ -93,7 +97,7 @@ export function ProfilePanel() {
           }
         />
         <div className="-mt-12 flex flex-col items-center px-6 pb-6 pt-0">
-          <Avatar user={user} label={name} size="lg" />
+          <Avatar user={user} src={avatarUrl || undefined} label={name} size="lg" />
           <h1 className="mt-4 text-xl font-semibold tracking-tight text-white">
             {name}
           </h1>

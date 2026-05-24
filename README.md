@@ -4,8 +4,9 @@ This is a [Next.js](https://nextjs.org) app for **LinkUp** (V1 MVP).
 
 - **Node:** use **20+** (see `.nvmrc`).
 - **Env:** add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`.
-- **Dev server:** `npm run dev -- --port 3030` (binds to `127.0.0.1` by default to avoid `uv_interface_addresses` issues on some setups). For LAN testing: `npm run dev:lan -- --port 3030`.
+- **Dev server:** `npm run dev -- --port 3030` (binds to `0.0.0.0` for LAN/mobile testing). Same as `npm run dev:lan`.
 - **Supabase tables:** after migrations, run `npm run verify:supabase`.
+- **Profile images:** bucket name must be **`profile-images`**. Run `supabase/migrations/20260518130000_profile_images_storage.sql` in the Supabase SQL Editor, then `npm run verify:storage`.
 
 ---
 
@@ -25,7 +26,7 @@ pnpm dev
 bun dev
 ```
 
-Open [http://127.0.0.1:3030](http://127.0.0.1:3030) with your browser to see the result when using the V1 dev command above.
+Open [http://localhost:3030](http://localhost:3030) on desktop or your Mac’s LAN IP (for example `http://192.168.1.11:3030`) on mobile.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

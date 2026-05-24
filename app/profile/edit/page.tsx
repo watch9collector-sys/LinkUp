@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function EditProfilePage() {
   return (
-    <div className="mx-auto w-full max-w-xl">
+    <div className="mx-auto w-full max-w-xl px-4 sm:px-0">
       <EditProfileForm />
     </div>
   );
