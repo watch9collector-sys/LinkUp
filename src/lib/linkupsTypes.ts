@@ -21,6 +21,8 @@ export type LinkUpRow = {
   title: string;
   category: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   starts_at: string;
   description: string;
   host_id: string;
@@ -35,6 +37,8 @@ export type LinkUpView = {
   title: string;
   category: string;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   starts_at: string;
   description: string;
   host_id: string;

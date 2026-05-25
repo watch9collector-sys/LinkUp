@@ -49,7 +49,7 @@ function HostingTipsAside() {
 }
 
 export function LinkUpsClient() {
-  const { items, loading, error, busyId, join, leave, user, ready, refresh } =
+  const { items, loading, error, busyId, join, leave, deleteAsHost, user, ready, refresh } =
     useLinkUpsFeed();
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
@@ -156,6 +156,7 @@ export function LinkUpsClient() {
         onClose={() => setDetailsId(null)}
         onJoin={join}
         onLeave={leave}
+        onDelete={deleteAsHost}
       />
     </div>
   );

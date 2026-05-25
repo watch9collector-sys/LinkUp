@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
       { source: "/shoutouts", destination: "/linkups", permanent: true },
       { source: "/shoutouts/:path*", destination: "/linkups", permanent: true },
       { source: "/safety", destination: "/child-safety", permanent: true },
+      { source: "/messages", destination: "/explore", permanent: false },
+      { source: "/messages/:path*", destination: "/explore", permanent: false },
+      { source: "/admin", destination: "/profile", permanent: false },
+      { source: "/admin/:path*", destination: "/profile", permanent: false },
     ];
   },
 };

@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { Modal } from "../Modal";
 import { Button } from "../ui/Button";
 import { SelectField, TextAreaField, TextInput } from "../ui/FormField";
+import { geocodeLocationLabel } from "@/src/lib/geocode";
 import { createLinkUp } from "@/src/lib/linkupsApi";
 import { LINKUP_CATEGORIES } from "@/src/lib/linkupsTypes";
 import type { User } from "@supabase/supabase-js";
@@ -70,10 +71,13 @@ export function CreateLinkUpModal({
 
     setSaving(true);
     try {
+      const geocoded = await geocodeLocationLabel(loc);
       const { error } = await createLinkUp({
         title: t,
         category,
-        location: loc,
+        location: geocoded?.displayName ?? loc,
+        latitude: geocoded?.latitude ?? null,
+        longitude: geocoded?.longitude ?? null,
         starts_at: starts.toISOString(),
         description: desc,
         host_id: user.id,
@@ -122,8 +126,11 @@ export function CreateLinkUpModal({
           value={locationLabel}
           onChange={(ev) => setLocationLabel(ev.target.value)}
           required
-          placeholder="Neighborhood, venue, or address"
+          placeholder="Neighborhood, venue, or street address"
         />
+        <p className="mt-1 text-xs leading-relaxed text-white/42">
+          We geocode this label for the Explore map. Be specific for accurate pins.
+        </p>
         <div>
           <label htmlFor="lu-starts" className="block text-sm font-medium tracking-tight text-white/88">
             Starts

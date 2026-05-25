@@ -36,26 +36,10 @@ function demoCoordinateOffset(id: string): { lat: number; lng: number } {
   return { lat: latOffset, lng: lngOffset };
 }
 
-function readOptionalCoordinate(
-  linkup: LinkUpView,
-  keys: readonly string[],
-): number | null {
-  const raw = linkup as unknown as Record<string, unknown>;
-  for (const key of keys) {
-    const value = raw[key];
-    if (typeof value === "number" && Number.isFinite(value)) return value;
-    if (typeof value === "string" && value.trim()) {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) return parsed;
-    }
-  }
-  return null;
-}
-
 export function linkUpMapPoint(linkup: LinkUpView): LinkUpMapPoint {
-  const lat = readOptionalCoordinate(linkup, ["lat", "latitude"]);
-  const lng = readOptionalCoordinate(linkup, ["lng", "lon", "longitude"]);
-  if (lat !== null && lng !== null) {
+  const lat = linkup.latitude;
+  const lng = linkup.longitude;
+  if (lat !== null && lng !== null && Number.isFinite(lat) && Number.isFinite(lng)) {
     return {
       id: linkup.id,
       title: linkup.title,

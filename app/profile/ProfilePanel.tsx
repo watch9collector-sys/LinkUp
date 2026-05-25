@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Avatar } from "../components/Avatar";
 import { GlassCard } from "../components/GlassCard";
 import { buttonClasses } from "../components/ui/Button";
@@ -20,8 +20,6 @@ const legalLinks = [
 
 export function ProfilePanel() {
   const { session, user, ready } = useAuthSession({ skipInitialLoading: true });
-  const [ghostMode, setGhostMode] = useState(false);
-
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
       console.info("[LinkUp] profile auth state", {
@@ -80,13 +78,6 @@ export function ProfilePanel() {
     typeof (user.user_metadata as Record<string, unknown>).banner_url === "string"
       ? ((user.user_metadata as Record<string, unknown>).banner_url as string).trim()
       : "";
-  const role =
-    typeof (user.user_metadata as Record<string, unknown>).role === "string"
-      ? ((user.user_metadata as Record<string, unknown>).role as string)
-      : "";
-  const showAdmin =
-    role === "admin" || process.env.NODE_ENV === "development";
-
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-5">
       <GlassCard className="overflow-hidden border-white/[0.06] p-0">
@@ -119,35 +110,6 @@ export function ProfilePanel() {
       </GlassCard>
 
       <GlassCard className="border-white/[0.06]">
-        <h2 className={sectionEyebrowClass}>Visibility</h2>
-        <div className="mt-4 flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] bg-[#0B0F14]/35 px-4 py-3.5">
-          <div>
-            <p className="text-sm font-medium text-white">Ghost mode</p>
-            <p className="text-xs text-white/50">Hide from nearby discovery</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={ghostMode}
-            onClick={() => setGhostMode((v) => !v)}
-            className={[
-              "relative h-8 w-[3.25rem] shrink-0 rounded-full transition-colors duration-300 ease-out",
-              ghostMode
-                ? "bg-emerald-500 shadow-[0_0_12px_rgba(34,197,94,0.35)]"
-                : "bg-white/12",
-            ].join(" ")}
-          >
-            <span
-              className={[
-                "absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300 ease-out",
-                ghostMode ? "translate-x-5" : "translate-x-0",
-              ].join(" ")}
-            />
-          </button>
-        </div>
-      </GlassCard>
-
-      <GlassCard className="border-white/[0.06]">
         <h2 className={sectionEyebrowClass}>Support & legal</h2>
         <ul className="mt-3 divide-y divide-white/[0.06] rounded-xl border border-white/[0.06] bg-[#0B0F14]/30">
           {legalLinks.map(({ href, label }) => (
@@ -163,19 +125,6 @@ export function ProfilePanel() {
               </Link>
             </li>
           ))}
-          {showAdmin ? (
-            <li>
-              <Link
-                href="/admin"
-                className="flex min-h-[3rem] items-center justify-between gap-3 px-4 py-3.5 text-[15px] font-medium text-white/85 transition hover:bg-white/[0.04] active:bg-white/[0.06]"
-              >
-                <span>Admin</span>
-                <span className="text-white/30" aria-hidden>
-                  →
-                </span>
-              </Link>
-            </li>
-          ) : null}
         </ul>
       </GlassCard>
     </div>

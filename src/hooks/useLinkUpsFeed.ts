@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/src/lib/supabase";
 import {
+  deleteLinkUpAsHost,
   fetchLinkUps,
   joinLinkUp,
   leaveLinkUp,
@@ -117,6 +118,26 @@ export function useLinkUpsFeed() {
     void runFetch(true);
   }, [runFetch]);
 
+  const deleteAsHost = useCallback(
+    async (linkupId: string) => {
+      if (!user) return { ok: false as const, error: "Sign in to manage your LinkUp." };
+      setBusyId(linkupId);
+      setError(null);
+      try {
+        const { error: deleteError } = await deleteLinkUpAsHost(linkupId);
+        if (deleteError) {
+          setError(deleteError.message);
+          return { ok: false as const, error: deleteError.message };
+        }
+        await runFetch(false);
+        return { ok: true as const, error: null };
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [user, runFetch],
+  );
+
   return {
     items,
     loading,
@@ -125,6 +146,7 @@ export function useLinkUpsFeed() {
     refresh,
     join,
     leave,
+    deleteAsHost,
     user,
     ready,
   };

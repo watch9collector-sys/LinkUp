@@ -4,9 +4,14 @@ This is a [Next.js](https://nextjs.org) app for **LinkUp** (V1 MVP).
 
 - **Node:** use **20+** (see `.nvmrc`).
 - **Env:** add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`.
-- **Dev server:** `npm run dev -- --port 3030` (binds to `0.0.0.0` for LAN/mobile testing). Same as `npm run dev:lan`.
-- **Supabase tables:** after migrations, run `npm run verify:supabase`.
-- **Profile images:** bucket name must be **`profile-images`**. Run `supabase/migrations/20260518130000_profile_images_storage.sql` in the Supabase SQL Editor, then `npm run verify:storage`.
+- **Dev server:** `npm run dev` (port **3030**, binds `0.0.0.0` for LAN/mobile). Same as `npm run dev:lan`.
+- **Supabase SQL (run in order in SQL Editor):**
+  1. `supabase/migrations/20260212160000_linkups_schema.sql`
+  2. `supabase/migrations/20260523100000_linkups_coordinates.sql` **(required if Explore/LinkUps error on `latitude` / `longitude`)**
+  3. `supabase/migrations/20260518130000_profile_images_storage.sql`
+  4. `supabase/migrations/20260523110000_support_requests.sql`
+- **Auth redirect URLs (Supabase → Authentication → URL configuration):** add your site origin plus `/auth/reset-password` for password reset.
+- **Verify:** `npm run verify:supabase` and `npm run verify:storage`
 
 ---
 

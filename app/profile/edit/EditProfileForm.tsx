@@ -19,6 +19,7 @@ import {
   type ProfileImageVariant,
 } from "@/src/lib/imageOptimize";
 import {
+  deleteProfileVariantFromStorage,
   storageErrorMessage,
   uploadProfileImageToStorage,
 } from "@/src/lib/storage";
@@ -57,6 +58,8 @@ function revokePreview(preview: string) {
 function ProfileFieldsForm({ user }: { user: User }) {
   const router = useRouter();
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const initialAvatarUrl = readMetaString(meta, "avatar_url");
+  const initialBannerUrl = readMetaString(meta, "banner_url");
   const [fullName, setFullName] = useState(() => readMetaString(meta, "full_name"));
   const [displayName, setDisplayName] = useState(() =>
     readMetaString(meta, "display_name"),
@@ -181,14 +184,22 @@ function ProfileFieldsForm({ user }: { user: User }) {
 
     try {
       setSavePhase("Uploading profile photo…", 5);
-      const nextAvatarUrl = await uploadProfileImage(avatar, "avatar", (value) => {
+      let nextAvatarUrl = await uploadProfileImage(avatar, "avatar", (value) => {
         setSavePhase("Uploading profile photo…", 5 + Math.round(value * 0.25));
       });
+      if (!avatar.file && !nextAvatarUrl && initialAvatarUrl) {
+        await deleteProfileVariantFromStorage(user.id, "avatar");
+        nextAvatarUrl = "";
+      }
 
       setSavePhase("Uploading profile banner…", 35);
-      const nextBannerUrl = await uploadProfileImage(banner, "banner", (value) => {
+      let nextBannerUrl = await uploadProfileImage(banner, "banner", (value) => {
         setSavePhase("Uploading profile banner…", 35 + Math.round(value * 0.25));
       });
+      if (!banner.file && !nextBannerUrl && initialBannerUrl) {
+        await deleteProfileVariantFromStorage(user.id, "banner");
+        nextBannerUrl = "";
+      }
 
       setSavePhase("Saving profile…", 70);
       const { error: updateError } = await supabase.auth.updateUser({

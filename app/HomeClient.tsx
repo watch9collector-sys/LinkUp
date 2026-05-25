@@ -16,6 +16,7 @@ import {
 import {
   authErrorGuidance,
   getAuthEmailRedirectTo,
+  getAuthPasswordResetRedirectTo,
   isLikelyEmailConfirmationPending,
 } from "@/src/lib/authUi";
 import { getDisplayName } from "@/src/lib/userDisplay";
@@ -105,6 +106,7 @@ function OnboardingChecklist() {
 type AuthBanner =
   | { kind: "none" }
   | { kind: "error"; message: string; showResend: boolean }
+  | { kind: "info"; message: string }
   | { kind: "check_email"; email: string };
 
 const RESEND_SUCCESS = "Another confirmation email is on its way.";
@@ -193,7 +195,7 @@ export function HomeClient() {
   const { session, ready } = useAuthSession({ skipInitialLoading: true });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [banner, setBanner] = useState<AuthBanner>({ kind: "none" });
   const [authDebug, setAuthDebug] = useState<string[]>([]);
   const [authBusy, setAuthBusy] = useState(false);
@@ -400,6 +402,52 @@ export function HomeClient() {
     }
   }
 
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    clearBanner();
+    const target = email.trim();
+    if (!target) {
+      setBanner({
+        kind: "error",
+        message: "Enter the email for your account.",
+        showResend: false,
+      });
+      return;
+    }
+
+    setAuthBusy(true);
+    try {
+      const redirectTo = getAuthPasswordResetRedirectTo();
+      const { error } = await withAuthTimeout(
+        supabase.auth.resetPasswordForEmail(target, {
+          redirectTo: redirectTo ?? undefined,
+        }),
+        "Password reset timed out. Check your connection and try again.",
+      );
+      if (error) {
+        setBanner({
+          kind: "error",
+          message: authErrorGuidance(error).message,
+          showResend: false,
+        });
+        return;
+      }
+      setBanner({
+        kind: "info",
+        message: `If an account exists for ${target}, we sent a password reset link. Check your inbox and spam folder.`,
+      });
+      setMode("signin");
+    } catch (err: unknown) {
+      setBanner({
+        kind: "error",
+        message: authErrorGuidance(err).message,
+        showResend: false,
+      });
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
   async function handleResendConfirmation() {
     const target =
       banner.kind === "check_email" ? banner.email : email.trim();
@@ -490,6 +538,64 @@ export function HomeClient() {
               </button>
             </div>
           </GlassCard>
+        ) : mode === "forgot" ? (
+          <GlassCard className="space-y-5 p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-white">Reset your password</h2>
+            <p className="text-sm leading-relaxed text-white/55">
+              We will email you a secure link. Add{" "}
+              <code className="rounded bg-black/30 px-1 text-xs">/auth/reset-password</code>{" "}
+              to your Supabase Auth redirect URLs for this site.
+            </p>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label htmlFor="home-email-forgot" className={labelClass}>
+                  Email
+                </label>
+                <input
+                  id="home-email-forgot"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(ev) => setEmail(ev.target.value)}
+                  className={inputClass}
+                  placeholder="you@example.com"
+                />
+              </div>
+              {banner.kind === "info" ? (
+                <p
+                  className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-100/95"
+                  role="status"
+                >
+                  {banner.message}
+                </p>
+              ) : null}
+              {banner.kind === "error" ? (
+                <p
+                  className="rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-200/95"
+                  role="alert"
+                >
+                  {banner.message}
+                </p>
+              ) : null}
+              <Button type="submit" variant="primary" size="lg" fullWidth loading={authBusy}>
+                Send reset link
+              </Button>
+              <button
+                type="button"
+                className={[
+                  buttonClasses("ghost", "md"),
+                  "w-full text-white/70 underline-offset-2 hover:underline",
+                ].join(" ")}
+                onClick={() => {
+                  clearBanner();
+                  setMode("signin");
+                }}
+              >
+                Back to sign in
+              </button>
+            </form>
+          </GlassCard>
         ) : (
           <GlassCard className="space-y-5 p-6 sm:p-8">
             <div className="flex rounded-xl border border-white/[0.06] bg-[#0B0F14]/40 p-1">
@@ -559,10 +665,30 @@ export function HomeClient() {
                   placeholder="••••••••"
                 />
               </div>
+              {mode === "signin" ? (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-emerald-300/90 underline-offset-2 hover:underline"
+                  onClick={() => {
+                    clearBanner();
+                    setMode("forgot");
+                  }}
+                >
+                  Forgot password?
+                </button>
+              ) : null}
               {mode === "signup" ? (
                 <p className="text-xs leading-relaxed text-white/45">
                   If email confirmation is enabled in your Supabase project, you
                   will need to click the link in your inbox before signing in.
+                </p>
+              ) : null}
+              {banner.kind === "info" ? (
+                <p
+                  className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-100/95"
+                  role="status"
+                >
+                  {banner.message}
                 </p>
               ) : null}
               {banner.kind === "error" ? (
@@ -623,8 +749,7 @@ export function HomeClient() {
         )}
 
         <p className="text-center text-xs text-white/40">
-          You can still open Explore as a guest — sign in to host LinkUps and use
-          Messages later.
+          You can still open Explore as a guest — sign in to host or join LinkUps.
         </p>
       </div>
     );
@@ -640,8 +765,7 @@ export function HomeClient() {
           Hey, {first}
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-white/60 md:mx-0">
-          What is live around you? Explore the map, start a LinkUp, or check your
-          inbox — stay intentional.
+          What is live around you? Explore the map or start a LinkUp — stay intentional.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
           <ButtonLink
@@ -675,9 +799,9 @@ export function HomeClient() {
           subtitle="Create or join a real-world plan in a few taps."
         />
         <HomeTile
-          href="/messages"
-          title="Messages"
-          subtitle="Threads with people you actually meet — no clutter."
+          href="/profile"
+          title="Profile"
+          subtitle="Photo, bio, and account settings."
         />
       </div>
 

@@ -98,11 +98,41 @@ export function storageErrorMessage(
     : "Could not load profile images.";
 }
 
+/** Remove all stored files for one profile variant (avatar or banner). */
+export async function deleteProfileVariantFromStorage(
+  userId: string,
+  variant: ProfileStorageVariant,
+): Promise<void> {
+  const folder = userId;
+  const { data: files, error: listError } = await supabase.storage
+    .from(PROFILE_IMAGES_BUCKET)
+    .list(folder, { limit: 100 });
+
+  if (listError || !files?.length) return;
+
+  const prefix = `${variant}.`;
+  const paths = files
+    .filter((file) => file.name?.startsWith(prefix))
+    .map((file) => `${folder}/${file.name}`);
+
+  if (!paths.length) return;
+
+  const { error: removeError } = await supabase.storage
+    .from(PROFILE_IMAGES_BUCKET)
+    .remove(paths);
+
+  if (removeError) {
+    throw new Error(storageErrorMessage(removeError, "upload"));
+  }
+}
+
 export async function uploadProfileImageToStorage(
   userId: string,
   variant: ProfileStorageVariant,
   file: File,
 ): Promise<string> {
+  await deleteProfileVariantFromStorage(userId, variant);
+
   const extension = file.name.split(".").pop()?.toLowerCase() || "webp";
   const path = profileImageObjectPath(userId, variant, extension);
 

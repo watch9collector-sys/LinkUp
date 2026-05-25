@@ -72,25 +72,6 @@ function IconLinkUps({ active }: { active: boolean }) {
   );
 }
 
-function IconMessages({ active }: { active: boolean }) {
-  return (
-    <svg
-      className={["h-5 w-5", iconClass(active)].join(" ")}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-      aria-hidden
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337L5.05 21l1.395-3.72C5.512 15.042 5 13.574 5 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"
-      />
-    </svg>
-  );
-}
-
 function IconProfile({ active }: { active: boolean }) {
   return (
     <svg
@@ -114,7 +95,6 @@ const coreNav = [
   { href: "/", label: "Home", Icon: IconHome },
   { href: "/explore", label: "Explore", Icon: IconExplore },
   { href: "/linkups", label: "LinkUps", Icon: IconLinkUps },
-  { href: "/messages", label: "Messages", Icon: IconMessages },
   { href: "/profile", label: "Profile", Icon: IconProfile },
 ] as const;
 

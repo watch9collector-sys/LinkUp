@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import type { LinkUpView } from "@/src/lib/linkupsTypes";
 import { formatLinkUpTime } from "@/src/lib/linkupsApi";
 import { Avatar } from "../Avatar";
@@ -15,6 +16,7 @@ type LinkUpDetailsModalProps = {
   onClose: () => void;
   onJoin: (id: string) => void;
   onLeave: (id: string) => void;
+  onDelete?: (id: string) => Promise<{ ok: boolean; error: string | null }>;
 };
 
 export function LinkUpDetailsModal({
@@ -25,8 +27,30 @@ export function LinkUpDetailsModal({
   onClose,
   onJoin,
   onLeave,
+  onDelete,
 }: LinkUpDetailsModalProps) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   if (!linkup) return null;
+
+  const hasMapPin =
+    linkup.latitude !== null &&
+    linkup.longitude !== null &&
+    Number.isFinite(linkup.latitude) &&
+    Number.isFinite(linkup.longitude);
+
+  async function handleDelete() {
+    if (!onDelete || !linkup) return;
+    setDeleteError(null);
+    const result = await onDelete(linkup.id);
+    if (result.ok) {
+      setConfirmDelete(false);
+      onClose();
+      return;
+    }
+    setDeleteError(result.error);
+  }
 
   return (
     <Modal open={open} title="LinkUp details" size="lg" onClose={onClose}>
@@ -45,6 +69,12 @@ export function LinkUpDetailsModal({
             </span>
             <span className="text-emerald-300/90">{linkup.location}</span>
           </p>
+          {!hasMapPin ? (
+            <p className="mt-2 text-xs text-amber-200/80">
+              Map pin unavailable — location was not geocoded. Hosts can delete and
+              recreate with a clearer address.
+            </p>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-3.5 rounded-2xl border border-white/[0.06] bg-[#0B0F14]/40 p-3.5">
@@ -102,15 +132,51 @@ export function LinkUpDetailsModal({
             Close
           </Button>
           {linkup.you_host ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="md"
-              disabled
-              className="shadow-none"
-            >
-              You are hosting
-            </Button>
+            confirmDelete ? (
+              <div className="flex w-full flex-col gap-2 sm:w-auto">
+                <p className="text-xs text-red-200/90">
+                  Delete this LinkUp permanently? Attendees will lose access.
+                </p>
+                {deleteError ? (
+                  <p className="text-xs text-red-300/95" role="alert">
+                    {deleteError}
+                  </p>
+                ) : null}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="md"
+                    loading={busy}
+                    onClick={() => void handleDelete()}
+                  >
+                    Confirm delete
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="md"
+                    disabled={busy}
+                    onClick={() => {
+                      setConfirmDelete(false);
+                      setDeleteError(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="danger"
+                size="md"
+                disabled={busy || !onDelete}
+                onClick={() => setConfirmDelete(true)}
+              >
+                Delete LinkUp
+              </Button>
+            )
           ) : signedIn && linkup.you_joined ? (
             <Button
               type="button"

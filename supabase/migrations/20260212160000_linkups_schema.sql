@@ -15,6 +15,8 @@ create table public.linkups (
   title text not null check (char_length(title) <= 160),
   category text not null check (char_length(category) <= 64),
   location text not null,
+  latitude double precision,
+  longitude double precision,
   description text not null default '' check (char_length(description) <= 2000),
   starts_at timestamptz not null,
   host_id uuid not null references auth.users (id) on delete cascade,
@@ -23,8 +25,26 @@ create table public.linkups (
   updated_at timestamptz not null default now()
 );
 
+alter table public.linkups
+  drop constraint if exists linkups_latitude_range;
+
+alter table public.linkups
+  add constraint linkups_latitude_range
+  check (latitude is null or (latitude >= -90 and latitude <= 90));
+
+alter table public.linkups
+  drop constraint if exists linkups_longitude_range;
+
+alter table public.linkups
+  add constraint linkups_longitude_range
+  check (longitude is null or (longitude >= -180 and longitude <= 180));
+
 create index linkups_starts_at_idx on public.linkups (starts_at asc);
 create index linkups_host_id_idx on public.linkups (host_id);
+
+create index if not exists linkups_coordinates_idx
+  on public.linkups (latitude, longitude)
+  where latitude is not null and longitude is not null;
 
 create or replace function public.set_linkups_updated_at()
 returns trigger

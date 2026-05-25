@@ -1,11 +1,22 @@
-/** Used in confirmation links so Supabase redirects back to this app (local or prod). */
-export function getAuthEmailRedirectTo(): string | undefined {
+function appOrigin(): string | undefined {
   if (typeof window !== "undefined" && window.location?.origin) {
-    return `${window.location.origin}/`;
+    return window.location.origin;
   }
   const site = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (site) return site.endsWith("/") ? site : `${site}/`;
-  return undefined;
+  if (!site) return undefined;
+  return site.endsWith("/") ? site.slice(0, -1) : site;
+}
+
+/** Used in confirmation links so Supabase redirects back to this app (local or prod). */
+export function getAuthEmailRedirectTo(): string | undefined {
+  const origin = appOrigin();
+  return origin ? `${origin}/` : undefined;
+}
+
+/** Password reset emails must land on this route (add to Supabase Auth redirect URLs). */
+export function getAuthPasswordResetRedirectTo(): string | undefined {
+  const origin = appOrigin();
+  return origin ? `${origin}/auth/reset-password` : undefined;
 }
 
 function lower(err: unknown): { code: string; message: string } {
@@ -49,6 +60,13 @@ export function authErrorGuidance(err: unknown): {
   if (message.includes("user already registered") || code === "user_already_exists") {
     return {
       message: "An account with this email already exists. Switch to Sign in.",
+      showResend: false,
+    };
+  }
+
+  if (message.includes("password") && message.includes("least")) {
+    return {
+      message: "Use a password with at least 6 characters.",
       showResend: false,
     };
   }

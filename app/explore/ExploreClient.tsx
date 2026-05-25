@@ -20,11 +20,13 @@ const exploreEmptyHints = [
 ] as const;
 
 export function ExploreClient() {
-  const { items, loading, error, busyId, join, leave, user, ready } =
+  const { items, loading, error, busyId, join, leave, deleteAsHost, user, ready } =
     useLinkUpsFeed();
   const [detailsId, setDetailsId] = useState<string | null>(null);
 
-  const mapPoints = items.map(linkUpMapPoint);
+  const allMapPoints = items.map(linkUpMapPoint);
+  const mapPoints = allMapPoints.filter((point) => !point.approximate);
+  const unmappedCount = items.length - mapPoints.length;
   const selectedLinkUp = items.find((item) => item.id === detailsId) ?? null;
 
   const signedIn = Boolean(user);
@@ -57,6 +59,13 @@ export function ExploreClient() {
             <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">.env.local</code>.
           </p>
         </GlassCard>
+      ) : null}
+
+      {unmappedCount > 0 ? (
+        <p className="text-xs leading-relaxed text-amber-200/85">
+          {unmappedCount} LinkUp{unmappedCount === 1 ? "" : "s"} hidden from the map until a
+          specific address is geocoded. New LinkUps geocode on publish.
+        </p>
       ) : null}
 
       {showSkeleton ? <LinkUpMapSkeleton /> : null}
@@ -117,6 +126,7 @@ export function ExploreClient() {
         onClose={() => setDetailsId(null)}
         onJoin={join}
         onLeave={leave}
+        onDelete={deleteAsHost}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 /**
- * Verifies .env.local matches PostgREST: project ref, JWT ref claim, and linkups table.
+ * Verifies .env.local matches PostgREST and linkups schema (including latitude/longitude).
  * Usage: node scripts/verify-supabase-tables.mjs
  */
 import fs from "fs";
@@ -52,6 +52,12 @@ if (!url || !key) {
   process.exit(1);
 }
 
+const headers = {
+  apikey: key,
+  Authorization: `Bearer ${key}`,
+  Accept: "application/json",
+};
+
 const host = new URL(url).host;
 const refFromUrl = host.split(".")[0];
 let refFromJwt = "(decode failed)";
@@ -63,33 +69,56 @@ try {
 
 console.log("\n--- .env.local ---");
 console.log("URL host:     ", host);
-console.log("Project ref:  ", refFromUrl, refFromUrl === refFromJwt ? "✓ matches JWT `ref`" : "✗ JWT ref is: " + refFromJwt);
+console.log(
+  "Project ref:  ",
+  refFromUrl,
+  refFromUrl === refFromJwt ? "✓ matches JWT `ref`" : "✗ JWT ref is: " + refFromJwt,
+);
 console.log("Anon key:     ", maskKey(key));
 
-const endpoints = [
-  `${url}/rest/v1/linkups?select=id&limit=1`,
-  `${url}/rest/v1/linkup_attendees?select=id&limit=1`,
+/** Same columns the app selects in src/lib/linkupsApi.ts */
+const linkupsAppSelect =
+  "id,title,category,location,latitude,longitude,starts_at,description,host_id,host_display_name,created_at,updated_at";
+
+const checks = [
+  {
+    name: "linkups (app select incl. latitude/longitude)",
+    url: `${url}/rest/v1/linkups?select=${encodeURIComponent(linkupsAppSelect)}&limit=1`,
+    fix: "supabase/migrations/20260523100000_linkups_coordinates.sql",
+  },
+  {
+    name: "linkup_attendees",
+    url: `${url}/rest/v1/linkup_attendees?select=id&limit=1`,
+    fix: "supabase/migrations/20260212160000_linkups_schema.sql",
+  },
 ];
 
-console.log("\n--- PostgREST ---");
-for (const ep of endpoints) {
+console.log("\n--- PostgREST / schema ---");
+let failed = 0;
+
+for (const { name, url: ep, fix } of checks) {
   try {
-    const r = await fetch(ep, {
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-        Accept: "application/json",
-      },
-    });
+    const r = await fetch(ep, { headers });
     const text = await r.text();
     const ok = r.ok;
-    console.log(r.status, ok ? "OK" : "FAIL", ep.replace(url, ""));
-    if (!ok) console.log("   ", text.slice(0, 280).replace(/\s+/g, " "));
+    console.log(r.status, ok ? "OK" : "FAIL", name);
+    if (!ok) {
+      failed += 1;
+      console.log("   ", text.slice(0, 400).replace(/\s+/g, " "));
+      if (text.includes("latitude") || text.includes("longitude") || text.includes("schema cache")) {
+        console.log("   → Run:", fix);
+        console.log("   → Then: select pg_notify('pgrst', 'reload schema');");
+      }
+    }
   } catch (e) {
-    console.log("FAIL", ep, e?.cause?.message || e.message);
+    failed += 1;
+    console.log("FAIL", name, e?.cause?.message || e.message);
   }
 }
 
-console.log("\nIf linkups returns 404 / schema cache: run supabase/migrations/20260212160000_linkups_schema.sql in THIS project, then:");
-console.log("  select pg_notify('pgrst', 'reload schema');");
-console.log("Restart `npm run dev` after changing .env.local.\n");
+if (failed > 0) {
+  console.log("\nSchema mismatch: apply pending migrations in Supabase SQL Editor, then re-run this script.\n");
+  process.exit(1);
+}
+
+console.log("\nOK: Database schema matches frontend linkups queries.\n");

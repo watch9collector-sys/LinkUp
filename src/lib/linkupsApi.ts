@@ -17,6 +17,8 @@ export function toLinkUpView(row: LinkUpRow, currentUserId: string | undefined):
     title: row.title,
     category: row.category,
     location: row.location,
+    latitude: row.latitude ?? null,
+    longitude: row.longitude ?? null,
     starts_at: row.starts_at,
     description: row.description,
     host_id: row.host_id,
@@ -36,6 +38,8 @@ const linkupSelect = `
   title,
   category,
   location,
+  latitude,
+  longitude,
   starts_at,
   description,
   host_id,
@@ -66,6 +70,8 @@ export async function createLinkUp(input: {
   title: string;
   category: string;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
   starts_at: string;
   description: string;
   host_id: string;
@@ -77,6 +83,8 @@ export async function createLinkUp(input: {
       title: input.title,
       category: input.category,
       location: input.location,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
       starts_at: input.starts_at,
       description: input.description,
       host_id: input.host_id,
@@ -128,6 +136,14 @@ export async function leaveLinkUp(
     .delete()
     .eq("linkup_id", linkup_id)
     .eq("user_id", user_id);
+  return { error: error ? new Error(wrapPostgrest(error.message)) : null };
+}
+
+/** Host-only delete; enforced by RLS (`linkups_delete_host`). */
+export async function deleteLinkUpAsHost(
+  linkup_id: string,
+): Promise<{ error: Error | null }> {
+  const { error } = await supabase.from(LINKUPS_TABLE).delete().eq("id", linkup_id);
   return { error: error ? new Error(wrapPostgrest(error.message)) : null };
 }
 
