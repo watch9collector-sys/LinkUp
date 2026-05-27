@@ -10,7 +10,11 @@ This is a [Next.js](https://nextjs.org) app for **LinkUp** (V1 MVP).
   2. `supabase/migrations/20260523100000_linkups_coordinates.sql` **(required if Explore/LinkUps error on `latitude` / `longitude`)**
   3. `supabase/migrations/20260518130000_profile_images_storage.sql`
   4. `supabase/migrations/20260523110000_support_requests.sql`
-- **Auth redirect URLs (Supabase → Authentication → URL configuration):** add your site origin plus `/auth/reset-password` for password reset.
+- **Auth redirect URLs (Supabase → Authentication → URL configuration):** add each origin you test from, plus the password reset path:
+  - `http://localhost:3030/auth/reset-password`
+  - `http://<your-lan-ip>:3030/auth/reset-password` (mobile Safari)
+  - `https://<your-production-domain>/auth/reset-password`
+  - Optional: set `NEXT_PUBLIC_SITE_URL` in `.env.local` for production email links when not testing from the browser origin.
 - **Verify:** `npm run verify:supabase` and `npm run verify:storage`
 
 ---

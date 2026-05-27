@@ -71,6 +71,14 @@ export function authErrorGuidance(err: unknown): {
     };
   }
 
+  if (message.includes("redirect") || message.includes("redirect_to")) {
+    return {
+      message:
+        "This site URL is not allowlisted for password reset. Add your app URL plus /auth/reset-password in Supabase → Authentication → URL configuration.",
+      showResend: false,
+    };
+  }
+
   if (err instanceof Error && err.message) {
     return { message: err.message, showResend: false };
   }

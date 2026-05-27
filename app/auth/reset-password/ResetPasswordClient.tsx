@@ -7,7 +7,7 @@ import { Button, ButtonLink } from "../../components/ui/Button";
 import { PageLoading } from "../../components/ui/LoadingStates";
 import { inputClass, labelClass } from "../../components/ui/styles";
 import { supabase } from "@/src/lib/supabase";
-import { authErrorGuidance } from "@/src/lib/authUi";
+import { authErrorGuidance, getAuthPasswordResetRedirectTo } from "@/src/lib/authUi";
 
 export function ResetPasswordClient() {
   const [ready, setReady] = useState(false);
@@ -22,8 +22,20 @@ export function ResetPasswordClient() {
     let cancelled = false;
 
     async function init() {
-      const { data } = await supabase.auth.getSession();
+      // Supabase puts recovery tokens in the URL hash; detectSessionInUrl exchanges them.
+      if (
+        typeof window !== "undefined" &&
+        (window.location.hash.includes("type=recovery") ||
+          window.location.hash.includes("access_token"))
+      ) {
+        setRecoveryReady(true);
+      }
+
+      const { data, error } = await supabase.auth.getSession();
       if (cancelled) return;
+      if (error && process.env.NODE_ENV !== "production") {
+        console.warn("[LinkUp] reset-password getSession:", error.message);
+      }
       if (data.session) {
         setRecoveryReady(true);
       }
@@ -35,7 +47,7 @@ export function ResetPasswordClient() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || session) {
+      if (event === "PASSWORD_RECOVERY" || (session && event === "SIGNED_IN")) {
         setRecoveryReady(true);
       }
     });
@@ -88,8 +100,16 @@ export function ResetPasswordClient() {
         <GlassCard className="space-y-4 p-8 text-center">
           <h1 className="text-xl font-semibold text-white">Reset link expired</h1>
           <p className="text-sm leading-relaxed text-white/60">
-            Request a new password reset email from the sign-in screen on Home.
+            Request a new password reset email from Home → Sign in → Forgot password?
           </p>
+          {process.env.NODE_ENV !== "production" ? (
+            <p className="text-xs leading-relaxed text-white/45">
+              Redirect URL must be allowlisted in Supabase:{" "}
+              <span className="text-emerald-300/90">
+                {getAuthPasswordResetRedirectTo() ?? "(set NEXT_PUBLIC_SITE_URL or open from app origin)"}
+              </span>
+            </p>
+          ) : null}
           <ButtonLink href="/" variant="primary" size="md">
             Back to Home
           </ButtonLink>

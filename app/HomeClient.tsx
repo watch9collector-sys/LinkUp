@@ -542,9 +542,8 @@ export function HomeClient() {
           <GlassCard className="space-y-5 p-6 sm:p-8">
             <h2 className="text-lg font-semibold text-white">Reset your password</h2>
             <p className="text-sm leading-relaxed text-white/55">
-              We will email you a secure link. Add{" "}
-              <code className="rounded bg-black/30 px-1 text-xs">/auth/reset-password</code>{" "}
-              to your Supabase Auth redirect URLs for this site.
+              Enter the email for your account. We will send a secure link to choose a new
+              password.
             </p>
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>
@@ -648,9 +647,23 @@ export function HomeClient() {
                 />
               </div>
               <div>
-                <label htmlFor="home-password" className={labelClass}>
-                  Password
-                </label>
+                <div className="flex items-center justify-between gap-3">
+                  <label htmlFor="home-password" className={labelClass}>
+                    Password
+                  </label>
+                  {mode === "signin" ? (
+                    <button
+                      type="button"
+                      className="min-h-[2.75rem] shrink-0 touch-manipulation text-sm font-medium text-emerald-300 underline-offset-2 transition hover:text-emerald-200 hover:underline"
+                      onClick={() => {
+                        clearBanner();
+                        setMode("forgot");
+                      }}
+                    >
+                      Forgot password?
+                    </button>
+                  ) : null}
+                </div>
                 <input
                   id="home-password"
                   type="password"
@@ -665,18 +678,6 @@ export function HomeClient() {
                   placeholder="••••••••"
                 />
               </div>
-              {mode === "signin" ? (
-                <button
-                  type="button"
-                  className="text-xs font-medium text-emerald-300/90 underline-offset-2 hover:underline"
-                  onClick={() => {
-                    clearBanner();
-                    setMode("forgot");
-                  }}
-                >
-                  Forgot password?
-                </button>
-              ) : null}
               {mode === "signup" ? (
                 <p className="text-xs leading-relaxed text-white/45">
                   If email confirmation is enabled in your Supabase project, you
