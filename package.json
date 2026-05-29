@@ -12,7 +12,8 @@
     "start": "next start",
     "lint": "eslint",
     "verify:supabase": "node scripts/verify-supabase-tables.mjs",
-    "verify:storage": "node scripts/verify-profile-storage.mjs"
+    "verify:storage": "node scripts/verify-profile-storage.mjs",
+    "verify:auth": "node scripts/verify-auth-project.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",

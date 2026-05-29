@@ -1,3 +1,8 @@
+/** Normalize email for Supabase Auth (trim + lowercase). */
+export function normalizeAuthEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 function appOrigin(): string | undefined {
   if (typeof window !== "undefined" && window.location?.origin) {
     return window.location.origin;
@@ -52,7 +57,8 @@ export function authErrorGuidance(err: unknown): {
     message.includes("invalid email or password")
   ) {
     return {
-      message: "Wrong email or password. Try again or use “Create account”.",
+      message:
+        "Invalid login credentials for this Supabase project. Confirm the account exists under Authentication → Users, use the password from your latest reset, or create a new account on the Sign up tab.",
       showResend: false,
     };
   }

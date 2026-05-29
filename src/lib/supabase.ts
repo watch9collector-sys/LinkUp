@@ -1,4 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  redirectToPasswordResetPage,
+  setPasswordRecoveryPending,
+} from "@/src/lib/authRecovery";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -65,3 +69,30 @@ export const supabase =
   });
 
 linkUpGlobal.__linkupSupabase = supabase;
+
+/** Must run before any getSession() so recovery links never stick on Home. */
+if (typeof window !== "undefined") {
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      setPasswordRecoveryPending(true);
+      redirectToPasswordResetPage();
+      return;
+    }
+
+    if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+      const email = session?.user?.email?.trim().toLowerCase();
+      if (!email) return;
+      try {
+        const requested = window.sessionStorage.getItem(
+          "linkup-password-reset-requested-email",
+        );
+        if (requested && requested === email) {
+          setPasswordRecoveryPending(true);
+          redirectToPasswordResetPage();
+        }
+      } catch {
+        // Ignore storage errors.
+      }
+    }
+  });
+}

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AuthHeroBrand } from "./components/Logo";
 import { GlassCard } from "./components/GlassCard";
 import { Button, ButtonLink, buttonClasses } from "./components/ui/Button";
@@ -18,8 +19,14 @@ import {
   getAuthEmailRedirectTo,
   getAuthPasswordResetRedirectTo,
   isLikelyEmailConfirmationPending,
+  normalizeAuthEmail,
 } from "@/src/lib/authUi";
 import { getDisplayName } from "@/src/lib/userDisplay";
+import {
+  isPasswordRecoveryPending,
+  sessionRequiresPasswordReset,
+  setPasswordResetRequestedEmail,
+} from "@/src/lib/authRecovery";
 
 function HomeTile({
   href,
@@ -192,6 +199,7 @@ function withAuthTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
 }
 
 export function HomeClient() {
+  const router = useRouter();
   const { session, ready } = useAuthSession({ skipInitialLoading: true });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -225,10 +233,12 @@ export function HomeClient() {
           storage: authStorageDebug(),
         });
         setAuthDebug(startedDebug);
+        const signInEmail = normalizeAuthEmail(email);
+        const signInPassword = password.trim();
         const { data, error } = await withAuthTimeout(
           supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password,
+            email: signInEmail,
+            password: signInPassword,
           }),
           "Sign in timed out. Check your Wi-Fi connection and try again.",
         );
@@ -405,7 +415,7 @@ export function HomeClient() {
   async function handleForgotPassword(e: React.FormEvent) {
     e.preventDefault();
     clearBanner();
-    const target = email.trim();
+    const target = normalizeAuthEmail(email);
     if (!target) {
       setBanner({
         kind: "error",
@@ -432,6 +442,7 @@ export function HomeClient() {
         });
         return;
       }
+      setPasswordResetRequestedEmail(target);
       setBanner({
         kind: "info",
         message: `If an account exists for ${target}, we sent a password reset link. Check your inbox and spam folder.`,
@@ -471,8 +482,27 @@ export function HomeClient() {
     }
   }
 
+  useEffect(() => {
+    if (!ready) return;
+    const needsReset =
+      isPasswordRecoveryPending() ||
+      (session?.user?.email &&
+        sessionRequiresPasswordReset(session.user.email));
+    if (needsReset) {
+      router.replace("/auth/reset-password");
+    }
+  }, [ready, router, session?.user?.email]);
+
   if (!ready) {
     return <PageLoading message="One moment…" />;
+  }
+
+  if (
+    session?.user &&
+    (isPasswordRecoveryPending() ||
+      sessionRequiresPasswordReset(session.user.email))
+  ) {
+    return <PageLoading message="Set your new password…" />;
   }
 
   if (!session?.user) {

@@ -8,10 +8,20 @@ import { PageLoading } from "../../components/ui/LoadingStates";
 import { inputClass, labelClass } from "../../components/ui/styles";
 import { supabase } from "@/src/lib/supabase";
 import { authErrorGuidance, getAuthPasswordResetRedirectTo } from "@/src/lib/authUi";
+import {
+  clearPasswordRecoveryFlags,
+  hasAuthCallbackCode,
+  isPasswordRecoveryPending,
+  isPasswordResetCallbackRoute,
+  isRecoveryAuthUrl,
+  sessionRequiresPasswordReset,
+  setPasswordRecoveryPending,
+} from "@/src/lib/authRecovery";
+import { setAuthSessionSnapshot } from "@/src/hooks/useAuthSession";
 
 export function ResetPasswordClient() {
   const [ready, setReady] = useState(false);
-  const [recoveryReady, setRecoveryReady] = useState(false);
+  const [mustSetPassword, setMustSetPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -21,36 +31,69 @@ export function ResetPasswordClient() {
   useEffect(() => {
     let cancelled = false;
 
-    async function init() {
-      // Supabase puts recovery tokens in the URL hash; detectSessionInUrl exchanges them.
-      if (
-        typeof window !== "undefined" &&
-        (window.location.hash.includes("type=recovery") ||
-          window.location.hash.includes("access_token"))
-      ) {
-        setRecoveryReady(true);
-      }
-
-      const { data, error } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (error && process.env.NODE_ENV !== "production") {
-        console.warn("[LinkUp] reset-password getSession:", error.message);
-      }
-      if (data.session) {
-        setRecoveryReady(true);
-      }
-      setReady(true);
+    function requireNewPassword() {
+      setPasswordRecoveryPending(true);
+      setMustSetPassword(true);
     }
 
-    void init();
+    if (
+      isRecoveryAuthUrl() ||
+      isPasswordRecoveryPending() ||
+      (isPasswordResetCallbackRoute() && hasAuthCallbackCode())
+    ) {
+      requireNewPassword();
+    }
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" || (session && event === "SIGNED_IN")) {
-        setRecoveryReady(true);
+      if (event === "PASSWORD_RECOVERY") {
+        requireNewPassword();
+        return;
+      }
+      if (
+        (event === "SIGNED_IN" || event === "INITIAL_SESSION") &&
+        session?.user &&
+        sessionRequiresPasswordReset(session.user.email)
+      ) {
+        requireNewPassword();
       }
     });
+
+    async function init() {
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (cancelled) return;
+
+      if (sessionError && process.env.NODE_ENV !== "production") {
+        console.warn("[LinkUp] reset-password getSession:", sessionError.message);
+      }
+
+      const recoveryRequired =
+        isRecoveryAuthUrl() ||
+        isPasswordRecoveryPending() ||
+        (isPasswordResetCallbackRoute() && hasAuthCallbackCode()) ||
+        (data.session?.user &&
+          sessionRequiresPasswordReset(data.session.user.email));
+
+      if (recoveryRequired) {
+        requireNewPassword();
+      } else if (data.session) {
+        window.location.replace("/");
+        return;
+      }
+
+      if (data.session && window.location.hash) {
+        window.history.replaceState(
+          null,
+          "",
+          `${window.location.pathname}${window.location.search}`,
+        );
+      }
+
+      setReady(true);
+    }
+
+    void init();
 
     return () => {
       cancelled = true;
@@ -62,22 +105,31 @@ export function ResetPasswordClient() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 6) {
+    const nextPassword = password.trim();
+    const confirmPassword = confirm.trim();
+
+    if (nextPassword.length < 6) {
       setError("Use a password with at least 6 characters.");
       return;
     }
-    if (password !== confirm) {
+    if (nextPassword !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
     setBusy(true);
     try {
-      const { error: updateError } = await supabase.auth.updateUser({ password });
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: nextPassword,
+      });
       if (updateError) {
         setError(authErrorGuidance(updateError).message);
         return;
       }
+
+      clearPasswordRecoveryFlags();
+      await supabase.auth.signOut();
+      setAuthSessionSnapshot(null);
       setDone(true);
     } catch (err: unknown) {
       setError(authErrorGuidance(err).message);
@@ -94,7 +146,7 @@ export function ResetPasswordClient() {
     );
   }
 
-  if (!recoveryReady) {
+  if (!mustSetPassword) {
     return (
       <div className="mx-auto max-w-lg px-4 py-10">
         <GlassCard className="space-y-4 p-8 text-center">
@@ -104,9 +156,9 @@ export function ResetPasswordClient() {
           </p>
           {process.env.NODE_ENV !== "production" ? (
             <p className="text-xs leading-relaxed text-white/45">
-              Redirect URL must be allowlisted in Supabase:{" "}
+              Allowlist in Supabase:{" "}
               <span className="text-emerald-300/90">
-                {getAuthPasswordResetRedirectTo() ?? "(set NEXT_PUBLIC_SITE_URL or open from app origin)"}
+                {getAuthPasswordResetRedirectTo() ?? "(your origin)/auth/reset-password"}
               </span>
             </p>
           ) : null}
@@ -124,7 +176,7 @@ export function ResetPasswordClient() {
         <GlassCard className="space-y-4 p-8 text-center">
           <h1 className="text-xl font-semibold text-white">Password updated</h1>
           <p className="text-sm leading-relaxed text-white/60">
-            Your password was saved. Sign in with your new password.
+            Your new password is saved. Sign in with that password (not your old one).
           </p>
           <ButtonLink href="/" variant="primary" size="md">
             Go to sign in
@@ -138,9 +190,10 @@ export function ResetPasswordClient() {
     <div className="mx-auto max-w-lg px-4 py-10">
       <GlassCard className="space-y-5 p-6 sm:p-8">
         <div>
-          <h1 className="text-xl font-semibold text-white">Choose a new password</h1>
+          <h1 className="text-xl font-semibold text-white">Set new password</h1>
           <p className="mt-2 text-sm leading-relaxed text-white/55">
-            This page opened from your reset email. Enter a new password below.
+            You opened a password reset link. Choose a new password below, then sign in
+            with it.
           </p>
         </div>
 
@@ -184,7 +237,7 @@ export function ResetPasswordClient() {
             </p>
           ) : null}
           <Button type="submit" variant="primary" size="lg" fullWidth loading={busy}>
-            Update password
+            Save new password
           </Button>
         </form>
 
