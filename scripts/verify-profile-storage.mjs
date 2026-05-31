@@ -13,11 +13,14 @@ const envPath = path.join(root, ".env.local");
 const BUCKET = "profile-images";
 
 function loadEnvLocal() {
+  const env = { ...process.env };
   if (!fs.existsSync(envPath)) {
+    if (env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return env;
+    }
     console.error("Missing .env.local at", envPath);
     process.exit(1);
   }
-  const env = {};
   for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
     const t = line.trim();
     if (!t || t.startsWith("#")) continue;
@@ -28,7 +31,7 @@ function loadEnvLocal() {
     if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
       v = v.slice(1, -1);
     }
-    env[k] = v;
+    if (!(k in process.env)) env[k] = v;
   }
   return env;
 }

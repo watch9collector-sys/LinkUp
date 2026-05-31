@@ -104,6 +104,13 @@ export async function createLinkUp(input: {
   });
 
   if (joinErr) {
+    const { error: rollbackErr } = await supabase
+      .from(LINKUPS_TABLE)
+      .delete()
+      .eq("id", data.id);
+    if (rollbackErr && process.env.NODE_ENV !== "production") {
+      console.warn("[LinkUp] createLinkUp rollback failed:", rollbackErr.message);
+    }
     return { id: null, error: new Error(wrapPostgrest(joinErr.message)) };
   }
 

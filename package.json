@@ -8,12 +8,16 @@
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0 -p 3030",
     "dev:lan": "next dev --hostname 0.0.0.0 -p 3030",
+    "prebuild": "node scripts/validate-env.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "verify:supabase": "node scripts/verify-supabase-tables.mjs",
     "verify:storage": "node scripts/verify-profile-storage.mjs",
-    "verify:auth": "node scripts/verify-auth-project.mjs"
+    "verify:auth": "node scripts/verify-auth-project.mjs",
+    "verify:auth-config": "node scripts/verify-auth-config.mjs",
+    "diagnose:support": "node scripts/diagnose-support-requests.mjs",
+    "verify:all": "npm run verify:auth-config && npm run verify:supabase && npm run verify:storage && npm run verify:auth"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",

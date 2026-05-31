@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/src/lib/supabase";
 import {
   deleteLinkUpAsHost,
@@ -13,6 +13,8 @@ import type { LinkUpView } from "@/src/lib/linkupsTypes";
 import { useAuthSession } from "@/src/hooks/useAuthSession";
 import { getDisplayName } from "@/src/lib/userDisplay";
 
+const REALTIME_REFETCH_DEBOUNCE_MS = 350;
+
 export function useLinkUpsFeed() {
   const { user, ready } = useAuthSession();
   const [items, setItems] = useState<LinkUpView[]>([]);
@@ -20,13 +22,24 @@ export function useLinkUpsFeed() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const fetchGenerationRef = useRef(0);
+  const debounceTimerRef = useRef<number | null>(null);
+
   const runFetch = useCallback(
     async (showSpinner: boolean) => {
+      const generation = ++fetchGenerationRef.current;
+
       if (showSpinner) {
         setLoading(true);
         setError(null);
       }
+
       const { data, error: fetchError } = await fetchLinkUps();
+
+      if (generation !== fetchGenerationRef.current) {
+        return;
+      }
+
       if (fetchError) {
         setError(fetchError.message);
         setItems([]);
@@ -34,12 +47,23 @@ export function useLinkUpsFeed() {
         setError(null);
         setItems(data.map((row) => toLinkUpView(row, user?.id)));
       }
+
       if (showSpinner) {
         setLoading(false);
       }
     },
     [user?.id],
   );
+
+  const scheduleRealtimeRefetch = useCallback(() => {
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = window.setTimeout(() => {
+      debounceTimerRef.current = null;
+      void runFetch(false);
+    }, REALTIME_REFETCH_DEBOUNCE_MS);
+  }, [runFetch]);
 
   useEffect(() => {
     if (!ready) return;
@@ -57,22 +81,27 @@ export function useLinkUpsFeed() {
         "postgres_changes",
         { event: "*", schema: "public", table: "linkups" },
         () => {
-          void runFetch(false);
+          scheduleRealtimeRefetch();
         },
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "linkup_attendees" },
         () => {
-          void runFetch(false);
+          scheduleRealtimeRefetch();
         },
       )
       .subscribe();
 
     return () => {
+      if (debounceTimerRef.current !== null) {
+        window.clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      fetchGenerationRef.current += 1;
       void supabase.removeChannel(channel);
     };
-  }, [ready, runFetch]);
+  }, [ready, scheduleRealtimeRefetch]);
 
   const join = useCallback(
     async (linkupId: string) => {

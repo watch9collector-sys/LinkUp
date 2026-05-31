@@ -366,9 +366,18 @@ export function HomeClient() {
           });
         setPassword("");
       } else {
+        const signUpEmail = normalizeAuthEmail(email);
+        if (!signUpEmail) {
+          setBanner({
+            kind: "error",
+            message: "Enter a valid email address.",
+            showResend: false,
+          });
+          return;
+        }
         const { data, error } = await withAuthTimeout(
           supabase.auth.signUp({
-            email: email.trim(),
+            email: signUpEmail,
             password,
             options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
           }),
@@ -386,7 +395,7 @@ export function HomeClient() {
         setAuthSessionSnapshot(data.session ?? null);
         setPassword("");
         if (isLikelyEmailConfirmationPending(data.user, data.session)) {
-          setBanner({ kind: "check_email", email: email.trim() });
+          setBanner({ kind: "check_email", email: signUpEmail });
         }
       }
     } catch (err: unknown) {
