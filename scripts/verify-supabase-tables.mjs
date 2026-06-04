@@ -112,37 +112,40 @@ const checks = [
 ];
 
 /**
- * support_requests is insert-only in the app. Verify via PostgREST OpenAPI (schema
- * cache) and a minimal POST insert probe — not GET ?select=id&limit=0, which can
- * return misleading PGRST205 even when INSERT works.
+ * support_requests: verify RPC (app path) then direct table insert fallback.
  */
 async function verifySupportRequests() {
-  const table = "support_requests";
-  const restPath = `/rest/v1/${table}`;
-  const openapiUrl = `${url}/rest/v1/`;
-  const insertUrl = `${url}${restPath}`;
+  const rpcUrl = `${url}/rest/v1/rpc/submit_support_request`;
+  const tableUrl = `${url}/rest/v1/support_requests`;
+  const probeBody = {
+    request_type: "contact",
+    name: "LinkUp Verify",
+    email: "verify@linkup.test",
+    message: "Automated verify probe — safe to delete from Supabase Dashboard.",
+    subject: null,
+    user_id: null,
+  };
 
-  console.log("   OpenAPI GET", openapiUrl, "(Accept: application/openapi+json)");
-  const openapiRes = await fetch(openapiUrl, {
+  console.log("   POST", rpcUrl);
+  const rpcRes = await fetch(rpcUrl, {
+    method: "POST",
     headers: {
       apikey: key,
       Authorization: `Bearer ${key}`,
-      Accept: "application/openapi+json",
+      Accept: "application/json",
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify(probeBody),
   });
-  const openapiText = await openapiRes.text();
-  let inOpenApi = false;
-  if (openapiRes.ok) {
-    try {
-      const doc = JSON.parse(openapiText);
-      inOpenApi = Boolean(doc.paths?.[restPath]);
-    } catch {
-      inOpenApi = openapiText.includes(`"${restPath}"`) || openapiText.includes(restPath);
-    }
+  const rpcText = await rpcRes.text();
+
+  if (rpcRes.status === 200 || rpcRes.status === 201 || rpcRes.status === 204) {
+    console.log(rpcRes.status, "OK support_requests (submit_support_request RPC)");
+    return true;
   }
 
-  console.log("   POST", insertUrl);
-  const insertRes = await fetch(insertUrl, {
+  console.log("   POST", tableUrl);
+  const insertRes = await fetch(tableUrl, {
     method: "POST",
     headers: {
       apikey: key,
@@ -160,40 +163,25 @@ async function verifySupportRequests() {
   });
   const insertText = await insertRes.text();
 
-  const insertOk = insertRes.status === 201 || insertRes.status === 204;
-  const insertReachable =
-    insertOk ||
-    (insertRes.status !== 404 &&
-      !insertText.includes("PGRST205") &&
-      !insertText.includes("schema cache"));
-
-  if (inOpenApi && insertOk) {
-    console.log("201 OK support_requests (PostgREST schema + insert probe)");
+  if (insertRes.status === 201 || insertRes.status === 204) {
+    console.log(insertRes.status, "OK support_requests (direct table insert)");
     return true;
   }
 
-  if (inOpenApi && insertReachable) {
-    console.log(
-      insertRes.status,
-      "OK support_requests (PostgREST schema; insert returned non-404)",
-    );
-    if (insertText.trim()) {
-      console.log("   ", insertText.slice(0, 400).replace(/\s+/g, " "));
-    }
-    return true;
+  console.log("FAIL support_requests (RPC and table insert)");
+  console.log("   rpc status:", rpcRes.status);
+  if (rpcText.trim()) {
+    console.log("   rpc body:", rpcText.slice(0, 400).replace(/\s+/g, " "));
   }
-
-  console.log("FAIL support_requests (PostgREST schema / insert probe)");
-  console.log("   openapi status:", openapiRes.status, "table in schema:", inOpenApi);
-  console.log("   insert status:", insertRes.status);
+  console.log("   table status:", insertRes.status);
   if (insertText.trim()) {
-    console.log("   ", insertText.slice(0, 400).replace(/\s+/g, " "));
+    console.log("   table body:", insertText.slice(0, 400).replace(/\s+/g, " "));
   }
-  console.log("   → Run: supabase/migrations/20260523110000_support_requests.sql");
-  console.log("   → Then: select pg_notify('pgrst', 'reload schema');");
+  console.log("   → Dashboard must be Production branch for project ref:", refFromUrl);
+  console.log("   → Run once: supabase/migrations/20260523120000_support_requests_rpc.sql");
+  console.log("   → Then: node scripts/confirm-active-supabase-database.mjs");
   console.log(
-    "   → Confirm Dashboard project ref matches script output above:",
-    refFromUrl,
+    "   → If still failing: Settings → General → Pause project → Restore (once, not reload loops)",
   );
   return false;
 }

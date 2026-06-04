@@ -17,6 +17,7 @@
     "verify:auth": "node scripts/verify-auth-project.mjs",
     "verify:auth-config": "node scripts/verify-auth-config.mjs",
     "diagnose:support": "node scripts/diagnose-support-requests.mjs",
+    "confirm:supabase-db": "node scripts/confirm-active-supabase-database.mjs",
     "verify:all": "npm run verify:auth-config && npm run verify:supabase && npm run verify:storage && npm run verify:auth"
   },
   "dependencies": {
