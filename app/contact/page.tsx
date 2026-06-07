@@ -26,7 +26,6 @@ export default function ContactPage() {
     try {
       const result = await submitSupportRequest({
         request_type: "contact",
-        user_id: user?.id ?? null,
         name: name.trim(),
         email: email.trim(),
         subject: subject.trim(),

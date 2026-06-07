@@ -89,12 +89,22 @@ set search_path = public
 as $$
 declare
   new_id uuid;
+  resolved_user_id uuid;
 begin
   if request_type not in ('contact', 'delete_account') then
     raise exception 'invalid request_type';
   end if;
 
+  resolved_user_id := case
+    when request_type = 'contact' then auth.uid()
+    else user_id
+  end;
+
+  -- Avoid INSERT ... RETURNING: with RLS and no SELECT policy, RETURNING needs read access.
+  new_id := gen_random_uuid();
+
   insert into public.support_requests (
+    id,
     request_type,
     user_id,
     name,
@@ -103,14 +113,14 @@ begin
     message
   )
   values (
+    new_id,
     request_type,
-    user_id,
+    resolved_user_id,
     trim(name),
     trim(email),
     nullif(trim(subject), ''),
     trim(message)
-  )
-  returning id into new_id;
+  );
 
   return new_id;
 end;

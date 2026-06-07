@@ -18,6 +18,29 @@ function wrapError(message: string | undefined | null): string {
   return message?.trim() || "Could not submit your request. Please try again.";
 }
 
+type PostgrestLikeError = {
+  message?: string;
+  code?: string;
+  details?: string | null;
+  hint?: string | null;
+};
+
+/** Surface PostgREST / Supabase errors verbatim — do not replace with generic hints. */
+function formatPostgrestError(error: PostgrestLikeError): string {
+  const message = error.message?.trim();
+  const code = error.code?.trim();
+  const details = typeof error.details === "string" ? error.details.trim() : "";
+  const hint = typeof error.hint === "string" ? error.hint.trim() : "";
+
+  const parts: string[] = [];
+  if (message) parts.push(message);
+  if (code) parts.push(`(${code})`);
+  if (details) parts.push(details);
+  if (hint) parts.push(hint);
+
+  return parts.join(" ") || wrapError(null);
+}
+
 function isSchemaCacheError(message: string): boolean {
   const lower = message.toLowerCase();
   return (
@@ -37,32 +60,67 @@ function schemaCacheGuidance(): string {
   );
 }
 
+/** delete_account only — contact user_id is set server-side from auth.uid(). */
+async function resolveDeleteAccountUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
+}
+
 async function insertViaRpc(input: SupportRequestInput) {
-  return supabase.rpc(SUPPORT_RPC, {
+  const params: {
+    request_type: SupportRequestType;
+    name: string;
+    email: string;
+    subject: string | null;
+    message: string;
+    user_id?: string | null;
+  } = {
     request_type: input.request_type,
     name: input.name.trim(),
     email: input.email.trim(),
     subject: input.subject?.trim() || null,
     message: input.message.trim(),
-    user_id: input.user_id ?? null,
-  });
+  };
+
+  if (input.request_type === "delete_account") {
+    params.user_id = input.user_id ?? null;
+  }
+
+  return supabase.rpc(SUPPORT_RPC, params);
 }
 
 async function insertViaTable(input: SupportRequestInput) {
-  return supabase.from(SUPPORT_TABLE).insert({
+  const row: {
+    request_type: SupportRequestType;
+    user_id?: string | null;
+    name: string;
+    email: string;
+    subject?: string | null;
+    message: string;
+  } = {
     request_type: input.request_type,
-    user_id: input.user_id ?? null,
     name: input.name.trim(),
     email: input.email.trim(),
     subject: input.subject?.trim() || null,
     message: input.message.trim(),
-  });
+  };
+
+  if (input.request_type === "delete_account") {
+    row.user_id = input.user_id ?? null;
+  }
+
+  return supabase.from(SUPPORT_TABLE).insert(row);
 }
 
 export async function submitSupportRequest(
   input: SupportRequestInput,
 ): Promise<{ ok: boolean; error: string | null }> {
-  const { error: rpcError } = await insertViaRpc(input);
+  const payload: SupportRequestInput =
+    input.request_type === "delete_account"
+      ? { ...input, user_id: await resolveDeleteAccountUserId() }
+      : { ...input, user_id: undefined };
+
+  const { error: rpcError } = await insertViaRpc(payload);
 
   if (!rpcError) {
     return { ok: true, error: null };
@@ -75,18 +133,10 @@ export async function submitSupportRequest(
       rpcMessage.toLowerCase().includes("does not exist"));
 
   if (!rpcMissing) {
-    const msg = rpcMessage.toLowerCase();
-    if (msg.includes("row-level security") || msg.includes("policy")) {
-      return {
-        ok: false,
-        error:
-          "Support requests are not enabled in Supabase yet. Run supabase/migrations/20260523120000_support_requests_rpc.sql.",
-      };
-    }
-    return { ok: false, error: wrapError(rpcMessage) };
+    return { ok: false, error: formatPostgrestError(rpcError) };
   }
 
-  const { error: tableError } = await insertViaTable(input);
+  const { error: tableError } = await insertViaTable(payload);
 
   if (!tableError) {
     return { ok: true, error: null };
@@ -97,14 +147,5 @@ export async function submitSupportRequest(
     return { ok: false, error: schemaCacheGuidance() };
   }
 
-  const msg = tableMessage.toLowerCase();
-  if (msg.includes("row-level security") || msg.includes("policy")) {
-    return {
-      ok: false,
-      error:
-        "Support requests are not enabled in Supabase yet. Run supabase/migrations/20260523120000_support_requests_rpc.sql.",
-    };
-  }
-
-  return { ok: false, error: wrapError(tableMessage) };
+  return { ok: false, error: formatPostgrestError(tableError) };
 }
