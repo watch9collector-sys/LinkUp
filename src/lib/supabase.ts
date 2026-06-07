@@ -22,16 +22,86 @@ type LinkUpSupabaseGlobal = typeof globalThis & {
 
 const linkUpGlobal = globalThis as LinkUpSupabaseGlobal;
 const memoryStorage = new Map<string, string>();
+const AUTH_STORAGE_KEY = "linkup-auth-token";
 
 if (!supabaseUrl) warnMissingEnv("NEXT_PUBLIC_SUPABASE_URL");
 if (!supabaseAnonKey) warnMissingEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const segment = token.split(".")[1];
+    if (!segment) return null;
+    const base64 = segment.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(base64)) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function accessTokenFromStoredSession(raw: string): string | null {
+  try {
+    const parsed = JSON.parse(raw) as { access_token?: string };
+    return typeof parsed.access_token === "string" ? parsed.access_token : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Drop sessions issued by a different Supabase project (e.g. after switching .env.local). */
+function sessionBelongsToConfiguredProject(accessToken: string): boolean {
+  if (!supabaseUrl) return true;
+  const payload = decodeJwtPayload(accessToken);
+  if (!payload) return false;
+
+  const expectedHost = new URL(supabaseUrl).host;
+  const expectedRef = expectedHost.split(".")[0];
+
+  if (typeof payload.ref === "string") {
+    return payload.ref === expectedRef;
+  }
+
+  if (typeof payload.iss === "string") {
+    try {
+      return new URL(payload.iss).host === expectedHost;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+function purgeStaleStoredSession(key: string) {
+  memoryStorage.delete(key);
+  try {
+    if (typeof window !== "undefined") window.localStorage.removeItem(key);
+  } catch {
+    // Ignore storage cleanup failures.
+  }
+}
+
 const authStorage = {
   getItem(key: string) {
     try {
-      return typeof window === "undefined"
-        ? memoryStorage.get(key) ?? null
-        : window.localStorage.getItem(key) ?? memoryStorage.get(key) ?? null;
+      const value =
+        typeof window === "undefined"
+          ? memoryStorage.get(key) ?? null
+          : window.localStorage.getItem(key) ?? memoryStorage.get(key) ?? null;
+
+      if (
+        key === AUTH_STORAGE_KEY &&
+        value &&
+        supabaseUrl &&
+        typeof window !== "undefined"
+      ) {
+        const accessToken = accessTokenFromStoredSession(value);
+        if (accessToken && !sessionBelongsToConfiguredProject(accessToken)) {
+          purgeStaleStoredSession(key);
+          return null;
+        }
+      }
+
+      return value;
     } catch {
       return memoryStorage.get(key) ?? null;
     }
@@ -64,7 +134,7 @@ export const supabase =
       detectSessionInUrl: true,
       persistSession: true,
       storage: authStorage,
-      storageKey: "linkup-auth-token",
+      storageKey: AUTH_STORAGE_KEY,
     },
   });
 
