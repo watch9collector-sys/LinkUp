@@ -1,8 +1,14 @@
+import { isUserFacingDevMode, linkUpFeedErrorMessage } from "@/src/lib/userFacingErrors";
+
 /**
  * Turn vague PostgREST “schema cache” errors into actionable text for developers.
  */
 export function clarifyPostgrestMessage(message: string): string {
   const raw = message.trim();
+  if (!isUserFacingDevMode()) {
+    return linkUpFeedErrorMessage(raw);
+  }
+
   if (raw.includes("The API does not see your tables yet.")) {
     return raw;
   }

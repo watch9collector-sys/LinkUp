@@ -293,10 +293,11 @@ export function HomeClient() {
           });
         }
         if (error) {
+          const guidance = authErrorGuidance(error);
           setBanner({
             kind: "error",
-            message: `Supabase sign-in error: ${authErrorDetail(error)}`,
-            showResend: authErrorGuidance(error).showResend,
+            message: guidance.message,
+            showResend: guidance.showResend,
           });
           return;
         }
@@ -424,7 +425,7 @@ export function HomeClient() {
       }
       setBanner({
         kind: "error",
-        message: `Auth request failed: ${authErrorDetail(err) || g.message}`,
+        message: g.message,
         showResend: g.showResend,
       });
     } finally {

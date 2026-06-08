@@ -1,4 +1,9 @@
 import { supabase } from "@/src/lib/supabase";
+import {
+  logUserFacingError,
+  supportRequestErrorMessage,
+  supportSchemaUnavailableMessage,
+} from "@/src/lib/userFacingErrors";
 
 export type SupportRequestType = "contact" | "delete_account";
 
@@ -14,49 +19,12 @@ export type SupportRequestInput = {
 const SUPPORT_TABLE = "support_requests";
 const SUPPORT_RPC = "submit_support_request";
 
-function wrapError(message: string | undefined | null): string {
-  return message?.trim() || "Could not submit your request. Please try again.";
-}
-
-type PostgrestLikeError = {
-  message?: string;
-  code?: string;
-  details?: string | null;
-  hint?: string | null;
-};
-
-/** Surface PostgREST / Supabase errors verbatim — do not replace with generic hints. */
-function formatPostgrestError(error: PostgrestLikeError): string {
-  const message = error.message?.trim();
-  const code = error.code?.trim();
-  const details = typeof error.details === "string" ? error.details.trim() : "";
-  const hint = typeof error.hint === "string" ? error.hint.trim() : "";
-
-  const parts: string[] = [];
-  if (message) parts.push(message);
-  if (code) parts.push(`(${code})`);
-  if (details) parts.push(details);
-  if (hint) parts.push(hint);
-
-  return parts.join(" ") || wrapError(null);
-}
-
 function isSchemaCacheError(message: string): boolean {
   const lower = message.toLowerCase();
   return (
     lower.includes("schema cache") ||
     lower.includes("pgrst205") ||
     lower.includes("pgrst202")
-  );
-}
-
-function schemaCacheGuidance(): string {
-  return (
-    "Support requests are not available on this Supabase API yet. In Dashboard → SQL Editor " +
-    "(Production branch, same project as .env.local), run " +
-    "supabase/migrations/20260523120000_support_requests_rpc.sql. " +
-    "If Contact still fails, confirm the Dashboard project URL matches your env and use " +
-    "Settings → General → Pause project → Restore once."
   );
 }
 
@@ -133,7 +101,8 @@ export async function submitSupportRequest(
       rpcMessage.toLowerCase().includes("does not exist"));
 
   if (!rpcMissing) {
-    return { ok: false, error: formatPostgrestError(rpcError) };
+    logUserFacingError("support RPC error", rpcError);
+    return { ok: false, error: supportRequestErrorMessage(rpcError) };
   }
 
   const { error: tableError } = await insertViaTable(payload);
@@ -144,8 +113,9 @@ export async function submitSupportRequest(
 
   const tableMessage = tableError.message ?? "";
   if (isSchemaCacheError(tableMessage)) {
-    return { ok: false, error: schemaCacheGuidance() };
+    return { ok: false, error: supportSchemaUnavailableMessage() };
   }
 
-  return { ok: false, error: formatPostgrestError(tableError) };
+  logUserFacingError("support table insert error", tableError);
+  return { ok: false, error: supportRequestErrorMessage(tableError) };
 }
