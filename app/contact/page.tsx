@@ -10,9 +10,10 @@ import { submitSupportRequest } from "@/src/lib/supportApi";
 import { SUPPORT_EMAIL } from "@/src/lib/support";
 
 export default function ContactPage() {
-  const { user } = useAuthSession({ skipInitialLoading: true });
+  const { user } = useAuthSession();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState(user?.email ?? "");
+  const [emailDraft, setEmailDraft] = useState<string | null>(null);
+  const email = emailDraft ?? user?.email ?? "";
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -83,7 +84,7 @@ export default function ContactPage() {
               autoComplete="email"
               placeholder="you@example.com"
               value={email}
-              onChange={(ev) => setEmail(ev.target.value)}
+              onChange={(ev) => setEmailDraft(ev.target.value)}
             />
             <TextInput
               id="subject"

@@ -12,7 +12,7 @@ import { getDisplayName } from "@/src/lib/userDisplay";
 import { SUPPORT_EMAIL } from "@/src/lib/support";
 
 export default function DeleteAccountPage() {
-  const { user, ready } = useAuthSession({ skipInitialLoading: true });
+  const { user, ready } = useAuthSession();
   const [confirmed, setConfirmed] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);

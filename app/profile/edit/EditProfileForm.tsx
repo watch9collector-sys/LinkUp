@@ -490,7 +490,7 @@ function ProfileFieldsForm({ user }: { user: User }) {
 }
 
 export function EditProfileForm() {
-  const { user, ready } = useAuthSession({ skipInitialLoading: true });
+  const { user, ready } = useAuthSession();
 
   if (!ready) {
     return (

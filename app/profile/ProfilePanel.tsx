@@ -19,7 +19,7 @@ const legalLinks = [
 ] as const;
 
 export function ProfilePanel() {
-  const { session, user, ready } = useAuthSession({ skipInitialLoading: true });
+  const { session, user, ready } = useAuthSession();
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
       console.info("[LinkUp] profile auth state", {

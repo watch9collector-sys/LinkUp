@@ -6,10 +6,6 @@ import { supabase } from "@/src/lib/supabase";
 
 const AUTH_SESSION_TIMEOUT_MS = 3500;
 
-type AuthSessionOptions = {
-  skipInitialLoading?: boolean;
-};
-
 let currentSession: Session | null = null;
 let currentReady = false;
 let initialized = false;
@@ -26,11 +22,6 @@ function publish(nextSession: Session | null, nextReady = true) {
 }
 
 function publishHydratedSession(nextSession: Session | null) {
-  if (!nextSession && currentSession) {
-    currentReady = true;
-    notify();
-    return;
-  }
   publish(nextSession);
 }
 
@@ -146,11 +137,10 @@ export async function refreshAuthSessionSnapshot() {
   }
 }
 
-export function useAuthSession(options: AuthSessionOptions = {}) {
-  const skipInitialLoading = options.skipInitialLoading ?? false;
+export function useAuthSession() {
   const [snapshot, setSnapshot] = useState(() => ({
     session: currentSession,
-    ready: currentReady || skipInitialLoading,
+    ready: currentReady,
   }));
 
   useEffect(() => {
@@ -159,7 +149,7 @@ export function useAuthSession(options: AuthSessionOptions = {}) {
     function updateSnapshot() {
       setSnapshot({
         session: currentSession,
-        ready: currentReady || skipInitialLoading,
+        ready: currentReady,
       });
     }
 
@@ -169,7 +159,7 @@ export function useAuthSession(options: AuthSessionOptions = {}) {
     return () => {
       listeners.delete(updateSnapshot);
     };
-  }, [skipInitialLoading]);
+  }, []);
 
   return {
     session: snapshot.session,

@@ -200,7 +200,7 @@ function withAuthTimeout<T>(promise: Promise<T>, message: string): Promise<T> {
 
 export function HomeClient() {
   const router = useRouter();
-  const { session, ready } = useAuthSession({ skipInitialLoading: true });
+  const { session, ready } = useAuthSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
