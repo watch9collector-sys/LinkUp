@@ -213,7 +213,18 @@ export function HomeClient() {
   function clearBanner() {
     setBanner({ kind: "none" });
     setResendHint(null);
-    setAuthDebug([]);
+    if (AUTH_DEBUG) {
+      setAuthDebug([]);
+    }
+  }
+
+  function appendAuthDebug(lines: string[] | ((prev: string[]) => string[])) {
+    if (!AUTH_DEBUG) return;
+    if (typeof lines === "function") {
+      setAuthDebug(lines);
+    } else {
+      setAuthDebug(lines);
+    }
   }
 
   async function handleAuth(e: React.FormEvent) {
@@ -232,7 +243,7 @@ export function HomeClient() {
           redirectTo: redirectTo ?? null,
           storage: authStorageDebug(),
         });
-        setAuthDebug(startedDebug);
+        appendAuthDebug(startedDebug);
         const signInEmail = normalizeAuthEmail(email);
         const signInPassword = password.trim();
         const { data, error } = await withAuthTimeout(
@@ -267,7 +278,7 @@ export function HomeClient() {
           expiresAt: data.session?.expires_at ?? null,
           storage: authStorageDebug(),
         });
-        setAuthDebug(resultDebug);
+        appendAuthDebug(resultDebug);
         if (AUTH_DEBUG) {
           console.info("[LinkUp] signInWithPassword result", {
             errorCode: error?.code ?? null,
@@ -307,7 +318,7 @@ export function HomeClient() {
             `postLogin getSession userId=${nextSession?.user?.id ?? "none"}`,
             authStorageDebug(),
           ];
-          setAuthDebug(refreshDebug);
+          appendAuthDebug(refreshDebug);
           reportAuthDebug("post-login getSession", {
             hasSession: Boolean(nextSession),
             userId: nextSession?.user?.id ?? null,
@@ -346,7 +357,7 @@ export function HomeClient() {
               });
             }
             if (userError) {
-              setAuthDebug((lines) => [
+              appendAuthDebug((lines) => [
                 ...lines,
                 `postLogin getUser error=${authErrorDetail(userError)}`,
               ]);
@@ -359,7 +370,7 @@ export function HomeClient() {
             if (AUTH_DEBUG) {
               console.warn("[LinkUp] post-login getUser failed", err);
             }
-            setAuthDebug((lines) => [
+            appendAuthDebug((lines) => [
               ...lines,
               `postLogin getUser failed=${authErrorDetail(err)}`,
             ]);
@@ -404,7 +415,7 @@ export function HomeClient() {
         error: authErrorDetail(err),
         storage: authStorageDebug(),
       });
-      setAuthDebug((lines) => [
+      appendAuthDebug((lines) => [
         ...lines,
         `auth exception=${authErrorDetail(err)}`,
       ]);
@@ -763,7 +774,7 @@ export function HomeClient() {
                   ) : null}
                 </div>
               ) : null}
-              {authDebug.length ? (
+              {AUTH_DEBUG && authDebug.length ? (
                 <div className="rounded-xl border border-emerald-500/15 bg-[#06120c]/70 px-4 py-3 text-left">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300/80">
                     Auth debug
