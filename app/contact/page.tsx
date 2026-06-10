@@ -98,8 +98,9 @@ export default function ContactPage() {
               id="message"
               label="Message"
               required
+              minLength={10}
               rows={5}
-              placeholder="How can we help?"
+              placeholder="How can we help? (at least 10 characters)"
               value={message}
               onChange={(ev) => setMessage(ev.target.value)}
             />

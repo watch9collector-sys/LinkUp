@@ -128,6 +128,10 @@ export function useLinkUpsFeed() {
   const leave = useCallback(
     async (linkupId: string) => {
       if (!user) return;
+      const linkup = items.find((item) => item.id === linkupId);
+      if (linkup?.you_host) {
+        return;
+      }
       setBusyId(linkupId);
       setError(null);
       try {
@@ -140,7 +144,7 @@ export function useLinkUpsFeed() {
         setBusyId(null);
       }
     },
-    [user, runFetch],
+    [user, items, runFetch],
   );
 
   const refresh = useCallback(() => {

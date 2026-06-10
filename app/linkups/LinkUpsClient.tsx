@@ -12,6 +12,7 @@ import { FeedGridSkeleton } from "../components/ui/LoadingStates";
 import { sectionEyebrowClass } from "../components/ui/styles";
 import { TextLink } from "../components/TextLink";
 import { useLinkUpsFeed } from "@/src/hooks/useLinkUpsFeed";
+import { isUserFacingDevMode } from "@/src/lib/userFacingErrors";
 
 const hostEmptyHints = [
   "Pick a title people can scan in one second (for example, “Sunset walk — Marina”).",
@@ -92,15 +93,21 @@ export function LinkUpsClient() {
       {error ? (
         <GlassCard className="border-amber-500/15 bg-amber-500/5">
           <p className="text-sm font-medium text-amber-100/95">{error}</p>
-          <p className="mt-2 text-sm leading-relaxed text-white/55">
-            Run{" "}
-            <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs text-white/80">
-              supabase/migrations/20260212160000_linkups_schema.sql
-            </code>{" "}
-            in the Supabase SQL editor, then{" "}
-            <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">npm run verify:supabase</code> locally. Restart{" "}
-            <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">npm run dev</code> after env changes.
-          </p>
+          {isUserFacingDevMode() ? (
+            <p className="mt-2 text-sm leading-relaxed text-white/55">
+              Run{" "}
+              <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs text-white/80">
+                supabase/migrations/20260212160000_linkups_schema.sql
+              </code>{" "}
+              in the Supabase SQL editor, then{" "}
+              <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">npm run verify:supabase</code> locally. Restart{" "}
+              <code className="rounded bg-black/30 px-1.5 py-0.5 text-xs">npm run dev</code> after env changes.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm leading-relaxed text-white/55">
+              Please try again in a moment. If this keeps happening, contact support from the Profile tab.
+            </p>
+          )}
         </GlassCard>
       ) : null}
 

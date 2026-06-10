@@ -18,6 +18,26 @@ export type SupportRequestInput = {
 
 const SUPPORT_TABLE = "support_requests";
 const SUPPORT_RPC = "submit_support_request";
+const MIN_SUPPORT_MESSAGE_LENGTH = 10;
+
+export function validateSupportRequestInput(
+  input: SupportRequestInput,
+): string | null {
+  const name = input.name.trim();
+  const email = input.email.trim();
+  const message = input.message.trim();
+
+  if (!name) {
+    return "Name is required.";
+  }
+  if (!email || !email.includes("@")) {
+    return "A valid email address is required.";
+  }
+  if (message.length < MIN_SUPPORT_MESSAGE_LENGTH) {
+    return `Message must be at least ${MIN_SUPPORT_MESSAGE_LENGTH} characters.`;
+  }
+  return null;
+}
 
 function isSchemaCacheError(message: string): boolean {
   const lower = message.toLowerCase();
@@ -83,6 +103,11 @@ async function insertViaTable(input: SupportRequestInput) {
 export async function submitSupportRequest(
   input: SupportRequestInput,
 ): Promise<{ ok: boolean; error: string | null }> {
+  const validationError = validateSupportRequestInput(input);
+  if (validationError) {
+    return { ok: false, error: validationError };
+  }
+
   const payload: SupportRequestInput =
     input.request_type === "delete_account"
       ? { ...input, user_id: await resolveDeleteAccountUserId() }

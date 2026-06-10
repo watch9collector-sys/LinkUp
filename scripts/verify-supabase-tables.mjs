@@ -111,10 +111,41 @@ const checks = [
   },
 ];
 
+const writeProbeEnabled =
+  (process.env.LINKUP_VERIFY_WRITE_PROBE || "").trim().toLowerCase() === "true";
+
 /**
  * support_requests: verify RPC (app path) then direct table insert fallback.
+ * Write probes are opt-in (LINKUP_VERIFY_WRITE_PROBE=true) to avoid polluting production.
  */
 async function verifySupportRequests() {
+  if (!writeProbeEnabled) {
+    const rpcUrl = `${url}/rest/v1/rpc/submit_support_request`;
+    console.log("   OPTIONS", rpcUrl);
+    const optionsRes = await fetch(rpcUrl, {
+      method: "OPTIONS",
+      headers,
+    });
+    if (optionsRes.ok) {
+      console.log(optionsRes.status, "OK support_requests RPC endpoint reachable (read-only verify)");
+      return true;
+    }
+
+    const tableUrl = `${url}/rest/v1/support_requests?select=id&limit=0`;
+    console.log("   GET", tableUrl);
+    const tableRes = await fetch(tableUrl, { headers });
+    if (tableRes.ok) {
+      console.log(tableRes.status, "OK support_requests table reachable (read-only verify)");
+      return true;
+    }
+
+    console.log("FAIL support_requests (read-only verify)");
+    console.log("   rpc options status:", optionsRes.status);
+    console.log("   table status:", tableRes.status);
+    console.log("   → Set LINKUP_VERIFY_WRITE_PROBE=true to run a live insert probe.");
+    return false;
+  }
+
   const rpcUrl = `${url}/rest/v1/rpc/submit_support_request`;
   const tableUrl = `${url}/rest/v1/support_requests`;
   const probeBody = {
