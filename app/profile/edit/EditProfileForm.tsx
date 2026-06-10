@@ -11,8 +11,13 @@ import { TextLink } from "../../components/TextLink";
 import { UploadProgress } from "../../components/ui/UploadProgress";
 import { inputClass, labelClass } from "../../components/ui/styles";
 import { supabase } from "@/src/lib/supabase";
-import { refreshAuthSessionSnapshot, useAuthSession } from "@/src/hooks/useAuthSession";
+import {
+  PROFILE_SAVE_TIMEOUT_MS,
+  syncAuthUserAfterProfileSave,
+  useAuthSession,
+} from "@/src/hooks/useAuthSession";
 import { getAuthEmailRedirectTo } from "@/src/lib/authUi";
+import { isUserFacingDevMode } from "@/src/lib/userFacingErrors";
 import {
   formatBytes,
   optimizeProfileImage,
@@ -30,6 +35,32 @@ function readMetaString(meta: Record<string, unknown>, key: string): string {
 }
 
 const BIO_MAX = 280;
+
+function logProfileSave(phase: string, detail?: unknown) {
+  if (!isUserFacingDevMode()) return;
+  console.info(`[LinkUp profile save] ${phase}`, detail ?? "");
+}
+
+function withProfileSaveTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(
+        new Error(
+          `${label} timed out. Check your connection and try again — large photos take longer on mobile.`,
+        ),
+      );
+    }, PROFILE_SAVE_TIMEOUT_MS);
+    promise
+      .then((value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((err: unknown) => {
+        window.clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
 
 type ImageFieldState = {
   file: File | null;
@@ -183,49 +214,84 @@ function ProfileFieldsForm({ user }: { user: User }) {
     setSaveProgress(0);
 
     try {
-      setSavePhase("Uploading profile photo…", 5);
-      let nextAvatarUrl = await uploadProfileImage(avatar, "avatar", (value) => {
-        setSavePhase("Uploading profile photo…", 5 + Math.round(value * 0.25));
+      logProfileSave("start", {
+        userId: user.id,
+        hasAvatarFile: Boolean(avatar.file),
+        hasBannerFile: Boolean(banner.file),
       });
+
+      setSavePhase("Uploading images…", 8);
+      const [uploadedAvatarUrl, uploadedBannerUrl] = await withProfileSaveTimeout(
+        Promise.all([
+          uploadProfileImage(avatar, "avatar", (value) => {
+            setSavePhase("Uploading images…", 8 + Math.round(value * 0.12));
+          }),
+          uploadProfileImage(banner, "banner", (value) => {
+            setSavePhase("Uploading images…", 22 + Math.round(value * 0.12));
+          }),
+        ]),
+        "Image upload",
+      );
+      logProfileSave("uploads complete", {
+        avatarChanged: Boolean(avatar.file),
+        bannerChanged: Boolean(banner.file),
+      });
+
+      let nextAvatarUrl = uploadedAvatarUrl;
+      let nextBannerUrl = uploadedBannerUrl;
+
       if (!avatar.file && !nextAvatarUrl && initialAvatarUrl) {
-        await deleteProfileVariantFromStorage(user.id, "avatar");
+        setSavePhase("Removing profile photo…", 38);
+        await withProfileSaveTimeout(
+          deleteProfileVariantFromStorage(user.id, "avatar"),
+          "Photo removal",
+        );
         nextAvatarUrl = "";
       }
 
-      setSavePhase("Uploading profile banner…", 35);
-      let nextBannerUrl = await uploadProfileImage(banner, "banner", (value) => {
-        setSavePhase("Uploading profile banner…", 35 + Math.round(value * 0.25));
-      });
       if (!banner.file && !nextBannerUrl && initialBannerUrl) {
-        await deleteProfileVariantFromStorage(user.id, "banner");
+        setSavePhase("Removing profile banner…", 42);
+        await withProfileSaveTimeout(
+          deleteProfileVariantFromStorage(user.id, "banner"),
+          "Banner removal",
+        );
         nextBannerUrl = "";
       }
 
-      setSavePhase("Saving profile…", 70);
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          full_name: fullName.trim(),
-          display_name: displayName.trim(),
-          bio: bio.trim(),
-          avatar_url: nextAvatarUrl,
-          banner_url: nextBannerUrl,
-        },
-      });
+      setSavePhase("Saving profile…", 55);
+      const profilePayload = {
+        full_name: fullName.trim(),
+        display_name: displayName.trim(),
+        bio: bio.trim(),
+        avatar_url: nextAvatarUrl,
+        banner_url: nextBannerUrl,
+      };
+      const { data: profileData, error: updateError } = await withProfileSaveTimeout(
+        supabase.auth.updateUser({ data: profilePayload }),
+        "Profile save",
+      );
       if (updateError) throw updateError;
+      logProfileSave("updateUser metadata ok", { userId: profileData.user?.id });
 
       const nextEmail = email.trim();
       const currentEmail = user.email?.trim() ?? "";
       if (nextEmail && nextEmail !== currentEmail) {
-        setSavePhase("Sending email confirmation…", 90);
-        const { error: emailError } = await supabase.auth.updateUser(
-          { email: nextEmail },
-          { emailRedirectTo: getAuthEmailRedirectTo() },
+        setSavePhase("Sending email confirmation…", 75);
+        const { data: emailData, error: emailError } = await withProfileSaveTimeout(
+          supabase.auth.updateUser(
+            { email: nextEmail },
+            { emailRedirectTo: getAuthEmailRedirectTo() },
+          ),
+          "Email change",
         );
         if (emailError) throw emailError;
-        await refreshAuthSessionSnapshot();
+        logProfileSave("email change requested", { email: nextEmail });
+        const { confirmed } = await syncAuthUserAfterProfileSave(emailData.user);
         setSavePhase("Done", 100);
         setNotice(
-          "Profile saved. Check your inbox to confirm the email change before using the new address to sign in.",
+          confirmed
+            ? "Profile saved. Check your inbox to confirm the email change before using the new address to sign in."
+            : "Profile saved. Check your inbox to confirm the email change. If your profile looks outdated, refresh the page.",
         );
         setAvatar((current) => ({
           ...current,
@@ -240,13 +306,29 @@ function ProfileFieldsForm({ user }: { user: User }) {
         return;
       }
 
-      setSavePhase("Refreshing session…", 92);
-      await refreshAuthSessionSnapshot();
+      setSavePhase("Refreshing session…", 85);
+      const { confirmed } = await syncAuthUserAfterProfileSave(profileData.user);
       setSavePhase("Done", 100);
-      setNotice("Profile saved successfully.");
+      setAvatar((current) => ({
+        ...current,
+        savedUrl: nextAvatarUrl,
+        file: null,
+      }));
+      setBanner((current) => ({
+        ...current,
+        savedUrl: nextBannerUrl,
+        file: null,
+      }));
+      logProfileSave("complete", { confirmed });
+      if (!confirmed) {
+        setNotice(
+          "Profile saved. If your changes do not appear right away, refresh the page.",
+        );
+      }
       router.push("/profile");
       router.refresh();
     } catch (err: unknown) {
+      logProfileSave("failed", err);
       const message =
         err instanceof Error
           ? err.message
