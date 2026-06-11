@@ -2,11 +2,23 @@ import { supabase } from "@/src/lib/supabase";
 
 /**
  * Supabase Storage bucket for profile avatars and banners.
- * Paths: `{userId}/avatar.webp`, `{userId}/banner.webp`
+ * Paths: `avatars/{userId}/avatar.webp`, `banners/{userId}/banner.webp`
  */
 export const PROFILE_IMAGES_BUCKET = "profile-images";
 
 export type ProfileStorageVariant = "avatar" | "banner";
+
+const VARIANT_FOLDER: Record<ProfileStorageVariant, "avatars" | "banners"> = {
+  avatar: "avatars",
+  banner: "banners",
+};
+
+export function profileImageStorageFolder(
+  userId: string,
+  variant: ProfileStorageVariant,
+): string {
+  return `${VARIANT_FOLDER[variant]}/${userId}`;
+}
 
 export function profileImageObjectPath(
   userId: string,
@@ -14,7 +26,8 @@ export function profileImageObjectPath(
   extension: string,
 ) {
   const ext = extension.replace(/^\./, "").toLowerCase() || "webp";
-  return `${userId}/${variant}.${ext}`;
+  const fileName = variant === "avatar" ? "avatar" : "banner";
+  return `${profileImageStorageFolder(userId, variant)}/${fileName}.${ext}`;
 }
 
 function lowerStorageError(err: unknown): string {
@@ -51,7 +64,7 @@ export function storageErrorMessage(
     message.includes("does not exist")
   ) {
     return context === "upload"
-      ? `Profile image storage bucket "${PROFILE_IMAGES_BUCKET}" was not found. Confirm it exists in Supabase Storage and matches the app configuration.`
+      ? `Could not reach the profile-images storage bucket. Try again in a moment or contact support.`
       : "Profile images are temporarily unavailable.";
   }
 
@@ -61,7 +74,7 @@ export function storageErrorMessage(
     message.includes("not authorized") ||
     message.includes("permission")
   ) {
-    return "You do not have permission to update this image. Apply storage policies in Supabase, then sign out and sign in again.";
+    return "You do not have permission to update this image. Sign out and sign in again, then retry.";
   }
 
   if (
@@ -103,16 +116,18 @@ export async function deleteProfileVariantFromStorage(
   userId: string,
   variant: ProfileStorageVariant,
 ): Promise<void> {
-  const folder = userId;
+  const folder = profileImageStorageFolder(userId, variant);
   const { data: files, error: listError } = await supabase.storage
     .from(PROFILE_IMAGES_BUCKET)
     .list(folder, { limit: 100 });
 
-  if (listError || !files?.length) return;
+  if (listError) {
+    throw new Error(storageErrorMessage(listError, "upload"));
+  }
+  if (!files?.length) return;
 
-  const prefix = `${variant}.`;
   const paths = files
-    .filter((file) => file.name?.startsWith(prefix))
+    .filter((file) => file.name && !file.name.endsWith("/"))
     .map((file) => `${folder}/${file.name}`);
 
   if (!paths.length) return;
@@ -161,7 +176,7 @@ export async function checkProfileImagesBucketReachable(): Promise<{
   ok: boolean;
   message: string;
 }> {
-  const { error } = await supabase.storage.from(PROFILE_IMAGES_BUCKET).list("", {
+  const { error } = await supabase.storage.from(PROFILE_IMAGES_BUCKET).list("avatars", {
     limit: 1,
   });
 

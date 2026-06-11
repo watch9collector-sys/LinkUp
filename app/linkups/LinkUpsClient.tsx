@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { EmptyState } from "../components/EmptyState";
 import { GlassCard } from "../components/GlassCard";
 import { CreateLinkUpModal } from "../components/linkups/CreateLinkUpModal";
+import { EditLinkUpModal } from "../components/linkups/EditLinkUpModal";
 import { LinkUpCard } from "../components/linkups/LinkUpCard";
 import { LinkUpDetailsModal } from "../components/linkups/LinkUpDetailsModal";
 import { PageHeader } from "../components/PageHeader";
@@ -54,6 +55,9 @@ export function LinkUpsClient() {
     useLinkUpsFeed();
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [editLinkUp, setEditLinkUp] = useState<
+    (typeof items)[number] | null
+  >(null);
 
   const openModal = useCallback(() => setModalOpen(true), []);
   const closeModal = useCallback(() => setModalOpen(false), []);
@@ -164,6 +168,22 @@ export function LinkUpsClient() {
         onJoin={join}
         onLeave={leave}
         onDelete={deleteAsHost}
+        onEdit={
+          selectedLinkUp?.you_host
+            ? () => {
+                setEditLinkUp(selectedLinkUp);
+                setDetailsId(null);
+              }
+            : undefined
+        }
+      />
+      <EditLinkUpModal
+        open={Boolean(editLinkUp)}
+        linkup={editLinkUp}
+        onClose={() => setEditLinkUp(null)}
+        onUpdated={() => {
+          void refresh();
+        }}
       />
     </div>
   );

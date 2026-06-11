@@ -144,7 +144,10 @@ if (failed > 0) {
 
 console.log(`\nOK: "${BUCKET}" is reachable via Storage API.`);
 console.log("Upload paths used by the app:");
-console.log("  {userId}/avatar.webp (or .jpg)");
-console.log("  {userId}/banner.webp (or .jpg)");
+console.log("  avatars/{userId}/avatar.webp (or .jpg)");
+console.log("  banners/{userId}/banner.webp (or .jpg)");
 console.log("\nNote: Upload/update/delete require a signed-in user in the browser.");
-console.log("If browser uploads fail, confirm RLS policies from the migration above.\n");
+console.log(
+  "If browser uploads fail, confirm RLS policies from:",
+);
+console.log("  supabase/migrations/20260610120000_profile_images_storage_paths.sql\n");

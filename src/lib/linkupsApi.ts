@@ -154,6 +154,35 @@ export async function deleteLinkUpAsHost(
   return { error: error ? new Error(wrapPostgrest(error.message)) : null };
 }
 
+/** Host-only update; enforced by RLS (`linkups_update_host`). */
+export async function updateLinkUpAsHost(
+  linkup_id: string,
+  input: {
+    title: string;
+    category: string;
+    location: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    starts_at: string;
+    description: string;
+  },
+): Promise<{ error: Error | null }> {
+  const { error } = await supabase
+    .from(LINKUPS_TABLE)
+    .update({
+      title: input.title,
+      category: input.category,
+      location: input.location,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
+      starts_at: input.starts_at,
+      description: input.description,
+    })
+    .eq("id", linkup_id);
+
+  return { error: error ? new Error(wrapPostgrest(error.message)) : null };
+}
+
 export function formatLinkUpTime(iso: string): string {
   try {
     return new Intl.DateTimeFormat(undefined, {

@@ -7,6 +7,7 @@ import { AuthHeroBrand } from "./components/Logo";
 import { GlassCard } from "./components/GlassCard";
 import { Button, ButtonLink, buttonClasses } from "./components/ui/Button";
 import { PageLoading } from "./components/ui/LoadingStates";
+import { PasswordInput } from "./components/ui/FormField";
 import { inputClass, labelClass, sectionEyebrowClass } from "./components/ui/styles";
 import { supabase } from "@/src/lib/supabase";
 import {
@@ -697,12 +698,11 @@ export function HomeClient() {
                   placeholder="you@example.com"
                 />
               </div>
-              <div>
-                <div className="flex items-center justify-between gap-3">
-                  <label htmlFor="home-password" className={labelClass}>
-                    Password
-                  </label>
-                  {mode === "signin" ? (
+              <PasswordInput
+                id="home-password"
+                label="Password"
+                labelAccessory={
+                  mode === "signin" ? (
                     <button
                       type="button"
                       className="min-h-[2.75rem] shrink-0 touch-manipulation text-sm font-medium text-emerald-300 underline-offset-2 transition hover:text-emerald-200 hover:underline"
@@ -713,22 +713,17 @@ export function HomeClient() {
                     >
                       Forgot password?
                     </button>
-                  ) : null}
-                </div>
-                <input
-                  id="home-password"
-                  type="password"
-                  autoComplete={
-                    mode === "signin" ? "current-password" : "new-password"
-                  }
-                  required
-                  minLength={6}
-                  value={password}
-                  onChange={(ev) => setPassword(ev.target.value)}
-                  className={inputClass}
-                  placeholder="••••••••"
-                />
-              </div>
+                  ) : null
+                }
+                autoComplete={
+                  mode === "signin" ? "current-password" : "new-password"
+                }
+                required
+                minLength={6}
+                value={password}
+                onChange={(ev) => setPassword(ev.target.value)}
+                placeholder="••••••••"
+              />
               {mode === "signup" ? (
                 <p className="text-xs leading-relaxed text-white/45">
                   If email confirmation is enabled in your Supabase project, you

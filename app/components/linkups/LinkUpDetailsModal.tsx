@@ -17,6 +17,7 @@ type LinkUpDetailsModalProps = {
   onJoin: (id: string) => void;
   onLeave: (id: string) => void;
   onDelete?: (id: string) => Promise<{ ok: boolean; error: string | null }>;
+  onEdit?: () => void;
 };
 
 export function LinkUpDetailsModal({
@@ -28,6 +29,7 @@ export function LinkUpDetailsModal({
   onJoin,
   onLeave,
   onDelete,
+  onEdit,
 }: LinkUpDetailsModalProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -71,8 +73,8 @@ export function LinkUpDetailsModal({
           </p>
           {!hasMapPin ? (
             <p className="mt-2 text-xs text-amber-200/80">
-              Map pin unavailable — location was not geocoded. Hosts can delete and
-              recreate with a clearer address.
+              Map pin unavailable — location was not geocoded. Hosts can edit with a
+              clearer street address or landmark.
             </p>
           ) : null}
         </div>
@@ -167,15 +169,26 @@ export function LinkUpDetailsModal({
                 </div>
               </div>
             ) : (
-              <Button
-                type="button"
-                variant="danger"
-                size="md"
-                disabled={busy || !onDelete}
-                onClick={() => setConfirmDelete(true)}
-              >
-                Delete LinkUp
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  disabled={busy || !onEdit}
+                  onClick={() => onEdit?.()}
+                >
+                  Edit LinkUp
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="md"
+                  disabled={busy || !onDelete}
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  Delete LinkUp
+                </Button>
+              </>
             )
           ) : signedIn && linkup.you_joined ? (
             <Button

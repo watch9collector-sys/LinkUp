@@ -6,6 +6,7 @@ import { EmptyState } from "../components/EmptyState";
 import { GlassCard } from "../components/GlassCard";
 import { LinkUpMap, LinkUpMapSkeleton } from "../components/LinkUpMap";
 import { LinkUpCard } from "../components/linkups/LinkUpCard";
+import { EditLinkUpModal } from "../components/linkups/EditLinkUpModal";
 import { LinkUpDetailsModal } from "../components/linkups/LinkUpDetailsModal";
 import { PageHeader } from "../components/PageHeader";
 import { ButtonLink } from "../components/ui/Button";
@@ -21,9 +22,12 @@ const exploreEmptyHints = [
 ] as const;
 
 export function ExploreClient() {
-  const { items, loading, error, busyId, join, leave, deleteAsHost, user, ready } =
+  const { items, loading, error, busyId, join, leave, deleteAsHost, user, ready, refresh } =
     useLinkUpsFeed();
   const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [editLinkUp, setEditLinkUp] = useState<
+    (typeof items)[number] | null
+  >(null);
 
   const allMapPoints = items.map(linkUpMapPoint);
   const mapPoints = allMapPoints.filter((point) => !point.approximate);
@@ -134,6 +138,22 @@ export function ExploreClient() {
         onJoin={join}
         onLeave={leave}
         onDelete={deleteAsHost}
+        onEdit={
+          selectedLinkUp?.you_host
+            ? () => {
+                setEditLinkUp(selectedLinkUp);
+                setDetailsId(null);
+              }
+            : undefined
+        }
+      />
+      <EditLinkUpModal
+        open={Boolean(editLinkUp)}
+        linkup={editLinkUp}
+        onClose={() => setEditLinkUp(null)}
+        onUpdated={() => {
+          void refresh();
+        }}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { Modal } from "../Modal";
 import { Button } from "../ui/Button";
 import { SelectField, TextAreaField, TextInput } from "../ui/FormField";
-import { geocodeLocationLabel } from "@/src/lib/geocode";
+import { GEOCODE_FAILED_MESSAGE, geocodeLocationLabel } from "@/src/lib/geocode";
 import { createLinkUp } from "@/src/lib/linkupsApi";
 import { LINKUP_CATEGORIES } from "@/src/lib/linkupsTypes";
 import type { User } from "@supabase/supabase-js";
@@ -72,12 +72,16 @@ export function CreateLinkUpModal({
     setSaving(true);
     try {
       const geocoded = await geocodeLocationLabel(loc);
+      if (!geocoded) {
+        setFormError(GEOCODE_FAILED_MESSAGE);
+        return;
+      }
       const { error } = await createLinkUp({
         title: t,
         category,
-        location: geocoded?.displayName ?? loc,
-        latitude: geocoded?.latitude ?? null,
-        longitude: geocoded?.longitude ?? null,
+        location: geocoded.displayName,
+        latitude: geocoded.latitude,
+        longitude: geocoded.longitude,
         starts_at: starts.toISOString(),
         description: desc,
         host_id: user.id,

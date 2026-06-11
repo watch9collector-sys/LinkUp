@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { Button, ButtonLink } from "../../components/ui/Button";
 import { PageLoading } from "../../components/ui/LoadingStates";
-import { inputClass, labelClass } from "../../components/ui/styles";
+import { PasswordInput } from "../../components/ui/FormField";
 import { supabase } from "@/src/lib/supabase";
 import { authErrorGuidance, getAuthPasswordResetRedirectTo } from "@/src/lib/authUi";
 import {
@@ -198,36 +198,24 @@ export function ResetPasswordClient() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="new-password" className={labelClass}>
-              New password
-            </label>
-            <input
-              id="new-password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(ev) => setPassword(ev.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label htmlFor="confirm-password" className={labelClass}>
-              Confirm password
-            </label>
-            <input
-              id="confirm-password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={6}
-              value={confirm}
-              onChange={(ev) => setConfirm(ev.target.value)}
-              className={inputClass}
-            />
-          </div>
+          <PasswordInput
+            id="new-password"
+            label="New password"
+            autoComplete="new-password"
+            required
+            minLength={6}
+            value={password}
+            onChange={(ev) => setPassword(ev.target.value)}
+          />
+          <PasswordInput
+            id="confirm-password"
+            label="Confirm password"
+            autoComplete="new-password"
+            required
+            minLength={6}
+            value={confirm}
+            onChange={(ev) => setConfirm(ev.target.value)}
+          />
           {error ? (
             <p
               className="rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-200/95"
