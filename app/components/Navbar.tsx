@@ -173,30 +173,18 @@ export function Navbar() {
             })}
           </nav>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center">
             {ready && user ? (
-              <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  loading={signingOut}
-                  className="touch-manipulation !px-2 text-xs font-medium text-white/60 hover:text-white/90 md:hidden"
-                >
-                  Log out
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleLogout}
-                  loading={signingOut}
-                  className="hidden border-white/[0.08] text-white/85 md:inline-flex"
-                >
-                  Log out
-                </Button>
-              </>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleLogout}
+                loading={signingOut}
+                className="touch-manipulation border-white/[0.08] text-xs text-white/85 sm:text-sm"
+              >
+                Log out
+              </Button>
             ) : null}
           </div>
         </div>
