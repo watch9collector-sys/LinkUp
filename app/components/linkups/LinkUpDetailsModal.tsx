@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { LinkUpView } from "@/src/lib/linkupsTypes";
 import { formatLinkUpTime } from "@/src/lib/linkupsApi";
+import { polishDisplayName } from "@/src/lib/investorDisplay";
 import { Avatar } from "../Avatar";
 import { Modal } from "../Modal";
 import { Button, buttonClasses } from "../ui/Button";
@@ -36,12 +37,6 @@ export function LinkUpDetailsModal({
 
   if (!linkup) return null;
 
-  const hasMapPin =
-    linkup.latitude !== null &&
-    linkup.longitude !== null &&
-    Number.isFinite(linkup.latitude) &&
-    Number.isFinite(linkup.longitude);
-
   async function handleDelete() {
     if (!onDelete || !linkup) return;
     setDeleteError(null);
@@ -71,20 +66,14 @@ export function LinkUpDetailsModal({
             </span>
             <span className="text-emerald-300/90">{linkup.location}</span>
           </p>
-          {!hasMapPin ? (
-            <p className="mt-2 text-xs text-amber-200/80">
-              Map pin unavailable — location was not geocoded. Hosts can edit with a
-              clearer street address or landmark.
-            </p>
-          ) : null}
         </div>
 
         <div className="flex items-center gap-3.5 rounded-2xl border border-white/[0.06] bg-[#0B0F14]/40 p-3.5">
-          <Avatar label={linkup.host_display_name} size="md" />
+          <Avatar label={polishDisplayName(linkup.host_display_name)} size="md" />
           <div className="min-w-0 flex-1">
             <p className="text-xs text-white/40">Host</p>
             <p className="truncate text-sm font-medium text-white/90">
-              {linkup.host_display_name}
+              {polishDisplayName(linkup.host_display_name)}
             </p>
           </div>
           <div className="rounded-xl bg-emerald-500/8 px-3 py-2 text-right ring-1 ring-emerald-500/12">
@@ -118,7 +107,7 @@ export function LinkUpDetailsModal({
                   key={attendee.user_id}
                   className="rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/75"
                 >
-                  {attendee.display_name.trim() || "Member"}
+                  {polishDisplayName(attendee.display_name.trim() || "Member")}
                 </li>
               ))}
             </ul>

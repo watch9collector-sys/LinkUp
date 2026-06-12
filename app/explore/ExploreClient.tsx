@@ -31,7 +31,6 @@ export function ExploreClient() {
 
   const allMapPoints = items.map(linkUpMapPoint);
   const mapPoints = allMapPoints.filter((point) => !point.approximate);
-  const unmappedCount = items.length - mapPoints.length;
   const selectedLinkUp = items.find((item) => item.id === detailsId) ?? null;
 
   const signedIn = Boolean(user);
@@ -39,10 +38,10 @@ export function ExploreClient() {
   const showMap = ready && !loading;
 
   return (
-    <div className="space-y-6 sm:space-y-7 lg:space-y-8">
+    <div className="space-y-7 sm:space-y-8 lg:space-y-10">
       <PageHeader
         title="Explore"
-        description="Live LinkUps around you — tap in, join what is happening, show up in the real world."
+        description="Explore live plans near you. Discover local experiences happening right now."
         action={
           <ButtonLink href="/linkups" variant="primary" size="md">
             Host a LinkUp
@@ -72,13 +71,6 @@ export function ExploreClient() {
         </GlassCard>
       ) : null}
 
-      {unmappedCount > 0 ? (
-        <p className="text-xs leading-relaxed text-amber-200/85">
-          {unmappedCount} LinkUp{unmappedCount === 1 ? "" : "s"} hidden from the map until a
-          specific address is geocoded. New LinkUps geocode on publish.
-        </p>
-      ) : null}
-
       {showSkeleton ? <LinkUpMapSkeleton /> : null}
       {showMap ? (
         <LinkUpMap
@@ -102,7 +94,7 @@ export function ExploreClient() {
       {items.length > 0 ? (
         <section className="space-y-3 lg:space-y-4">
           <h2 className={sectionEyebrowClass}>Nearby LinkUps</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
             {items.map((lu) => (
               <LinkUpCard
                 key={lu.id}

@@ -347,11 +347,7 @@ export function LinkUpMap({
           Live map
         </span>
         <span className="w-fit rounded-lg bg-[#0B0F14]/82 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-slate-300/90 backdrop-blur-md ring-1 ring-white/[0.06] sm:text-xs">
-          {points.length === 0
-            ? "No LinkUps yet"
-            : points.some((p) => p.approximate)
-              ? "Approximate locations"
-              : "Nearby LinkUps"}
+          {points.length === 0 ? "No LinkUps yet" : "Nearby LinkUps"}
         </span>
       </div>
     </GlassCard>

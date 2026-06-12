@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { LinkUpView } from "@/src/lib/linkupsTypes";
 import { formatLinkUpTime } from "@/src/lib/linkupsApi";
+import { polishDisplayName } from "@/src/lib/investorDisplay";
 import { Avatar } from "../Avatar";
 import { Button } from "../ui/Button";
 
@@ -129,7 +130,7 @@ export function LinkUpCard({
                   className="flex items-center justify-between gap-2 text-sm text-white/80"
                 >
                   <span className="truncate">
-                    {a.display_name.trim() || "Member"}
+                    {polishDisplayName(a.display_name.trim() || "Member")}
                     {a.user_id === linkup.host_id ? (
                       <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-400/80">
                         host

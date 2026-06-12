@@ -16,7 +16,7 @@ import { useLinkUpsFeed } from "@/src/hooks/useLinkUpsFeed";
 import { isUserFacingDevMode } from "@/src/lib/userFacingErrors";
 
 const hostEmptyHints = [
-  "Pick a title people can scan in one second (for example, “Sunset walk — Marina”).",
+  "Pick a title people can scan in one second (for example, “Coffee & Entrepreneurs”).",
   "Choose a time you would actually show up for — clarity builds trust.",
   "Use a neighborhood or landmark for location so guests know where to head.",
 ] as const;
@@ -134,7 +134,7 @@ export function LinkUpsClient() {
       ) : null}
 
       {items.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
           {items.map((lu) => (
             <LinkUpCard
               key={lu.id}

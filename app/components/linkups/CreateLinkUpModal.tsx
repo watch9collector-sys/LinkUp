@@ -109,7 +109,7 @@ export function CreateLinkUpModal({
           onChange={(ev) => setTitle(ev.target.value)}
           required
           maxLength={120}
-          placeholder="Sunset run, co-work hour…"
+          placeholder="Coffee meetup, study session, community run…"
         />
         <SelectField
           id="lu-category"
@@ -130,10 +130,10 @@ export function CreateLinkUpModal({
           value={locationLabel}
           onChange={(ev) => setLocationLabel(ev.target.value)}
           required
-          placeholder="Neighborhood, venue, or street address"
+          placeholder="Enter a venue, address, or landmark"
         />
-        <p className="mt-1 text-xs leading-relaxed text-white/42">
-          We geocode this label for the Explore map. Be specific for accurate pins.
+        <p className="-mt-2 text-xs leading-relaxed text-white/42">
+          A clear location helps people find you on the map.
         </p>
         <div>
           <label htmlFor="lu-starts" className="block text-sm font-medium tracking-tight text-white/88">
@@ -151,13 +151,16 @@ export function CreateLinkUpModal({
         </div>
         <TextAreaField
           id="lu-desc"
-          label="Short description"
+          label="What to expect"
           value={description}
           onChange={(ev) => setDescription(ev.target.value)}
           rows={3}
           maxLength={500}
-          placeholder="What should people expect?"
+          placeholder="What should attendees expect?"
         />
+        <p className="-mt-2 text-xs leading-relaxed text-white/42">
+          Clear details help people decide to join.
+        </p>
         {formError ? (
           <p
             className="whitespace-pre-wrap text-left text-sm text-red-300/95"

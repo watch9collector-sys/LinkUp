@@ -79,4 +79,4 @@ export async function geocodeLocationLabel(
 }
 
 export const GEOCODE_FAILED_MESSAGE =
-  "We could not map that address. Use a street address, neighborhood, or landmark (for example, “123 Main St, Oakland”) so your LinkUp appears on the map.";
+  "We could not verify that location. Enter a venue, address, or landmark so guests know where to meet.";

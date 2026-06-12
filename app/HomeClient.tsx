@@ -22,7 +22,7 @@ import {
   isLikelyEmailConfirmationPending,
   normalizeAuthEmail,
 } from "@/src/lib/authUi";
-import { getDisplayName } from "@/src/lib/userDisplay";
+import { getWelcomeFirstName } from "@/src/lib/investorDisplay";
 import {
   isPasswordRecoveryPending,
   sessionRequiresPasswordReset,
@@ -51,6 +51,37 @@ function HomeTile({
         </span>
       </GlassCard>
     </Link>
+  );
+}
+
+function BetaMetricsSection() {
+  const metrics = [
+    { label: "Beta Testers", value: "25+" },
+    { label: "LinkUps Created", value: "50+" },
+    { label: "Connections Made", value: "100+" },
+  ] as const;
+
+  return (
+    <section aria-labelledby="beta-metrics-heading">
+      <p id="beta-metrics-heading" className={sectionEyebrowClass}>
+        LinkUp Beta
+      </p>
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        {metrics.map((metric) => (
+          <GlassCard
+            key={metric.label}
+            className="border-white/[0.06] px-5 py-5 text-center sm:px-6 sm:py-6"
+          >
+            <p className="text-2xl font-semibold tracking-tight text-white sm:text-[1.75rem]">
+              {metric.value}
+            </p>
+            <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.16em] text-white/45">
+              {metric.label}
+            </p>
+          </GlassCard>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -802,17 +833,17 @@ export function HomeClient() {
     );
   }
 
-  const first = getDisplayName(session.user);
+  const first = getWelcomeFirstName(session.user);
 
   return (
-    <div className="space-y-8 sm:space-y-10">
+    <div className="space-y-10 sm:space-y-12">
       <section className="text-center md:text-left">
         <p className={[sectionEyebrowClass, "text-emerald-400/75"].join(" ")}>Today</p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-          Hey, {first}
+          Welcome back, {first}
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-white/60 md:mx-0">
-          What is live around you? Explore the map or start a LinkUp — stay intentional.
+          Discover what is happening nearby. Explore live plans or create your own.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center md:justify-start">
           <ButtonLink
@@ -832,9 +863,12 @@ export function HomeClient() {
             Start a LinkUp
           </ButtonLink>
         </div>
+        <div className="mt-10">
+          <BetaMetricsSection />
+        </div>
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
         <HomeTile
           href="/explore"
           title="Explore"

@@ -522,7 +522,7 @@ function ProfileFieldsForm({ user }: { user: User }) {
             maxLength={BIO_MAX}
             disabled={saving}
             className={`${inputClass} min-h-[6rem] resize-y`}
-            placeholder="A short line about you…"
+            placeholder="Founder, student, runner — a short line about you…"
           />
           <p className="mt-1.5 text-right text-xs tabular-nums text-white/40">
             {bio.length}/{BIO_MAX}

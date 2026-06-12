@@ -42,7 +42,7 @@ export default function RootLayout({
         </Script>
         <AuthRecoveryRedirect />
         <Navbar />
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 pb-28 pt-5 sm:px-5 md:py-8 md:pb-10 md:pt-6 lg:px-6">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-7 pb-28 pt-6 sm:px-5 md:py-9 md:pb-10 md:pt-7 lg:px-6">
           {children}
         </main>
       </body>

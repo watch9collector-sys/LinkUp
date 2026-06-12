@@ -11,6 +11,7 @@ import {
 } from "@/src/lib/linkupsApi";
 import type { LinkUpView } from "@/src/lib/linkupsTypes";
 import { useAuthSession } from "@/src/hooks/useAuthSession";
+import { polishLinkUpForDisplay } from "@/src/lib/investorDisplay";
 import { getDisplayName } from "@/src/lib/userDisplay";
 
 const REALTIME_REFETCH_DEBOUNCE_MS = 350;
@@ -45,7 +46,11 @@ export function useLinkUpsFeed() {
         setItems([]);
       } else {
         setError(null);
-        setItems(data.map((row) => toLinkUpView(row, user?.id)));
+        setItems(
+          data.map((row) =>
+            polishLinkUpForDisplay(toLinkUpView(row, user?.id)),
+          ),
+        );
       }
 
       if (showSpinner) {
