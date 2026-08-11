@@ -15,7 +15,7 @@ update auth.users
 set raw_user_meta_data = jsonb_set(
   coalesce(raw_user_meta_data, '{}'::jsonb),
   '{bio}',
-  '"Founder & CEO of LinkUp"'::jsonb,
+  '"Founder & CEO of Nyvon"'::jsonb,
   true
 )
 where coalesce(raw_user_meta_data->>'bio', '') ilike '%developer of linkup%';

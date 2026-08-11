@@ -21,7 +21,7 @@ export default function GlobalError({
         <div className="w-full max-w-lg rounded-2xl border border-white/[0.07] bg-[#111827]/85 p-8 text-center shadow-[0_24px_80px_-28px_rgba(0,0,0,0.75)]">
           <h1 className="text-xl font-semibold">Something went wrong</h1>
           <p className="mt-3 text-sm leading-relaxed text-white/60">
-            LinkUp could not load this page. Try again or return Home.
+            Nyvon could not load this page. Try again or return Home.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <button

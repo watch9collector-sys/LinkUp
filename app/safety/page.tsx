@@ -10,13 +10,13 @@ export default function SafetyPage() {
   return (
     <LegalCenterCard
       title="Child Safety Standards"
-      description="Our zero-tolerance approach to child safety, reporting pathways, and how we enforce community protection on LinkUp."
+      description="Our zero-tolerance approach to child safety, reporting pathways, and how we enforce community protection on Nyvon."
     >
       <div className="space-y-6">
         <section>
           <h2 className="font-semibold text-white">Zero tolerance</h2>
           <p className="mt-2 text-white/68">
-            LinkUp has zero tolerance for child sexual exploitation, grooming,
+            Nyvon has zero tolerance for child sexual exploitation, grooming,
             CSAM, trafficking, or any behavior that endangers minors.
           </p>
         </section>

@@ -1,4 +1,4 @@
-This is a [Next.js](https://nextjs.org) app for **LinkUp** (V1 MVP).
+This is a [Next.js](https://nextjs.org) app for **Nyvon** (V1 MVP).
 
 ## Local development
 

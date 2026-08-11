@@ -150,7 +150,7 @@ export function Navbar() {
           >
             <LogoMark />
             <span className="truncate text-lg font-semibold tracking-tight text-white">
-              LinkUp
+              Nyvon
             </span>
           </Link>
 

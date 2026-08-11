@@ -22,7 +22,7 @@ export default function Error({
       <GlassCard className="space-y-5 p-8 text-center">
         <h1 className="text-xl font-semibold text-white">Something went wrong</h1>
         <p className="text-sm leading-relaxed text-white/60">
-          LinkUp hit an unexpected error. You can try again or return Home.
+          Nyvon hit an unexpected error. You can try again or return Home.
         </p>
         {process.env.NODE_ENV !== "production" && error.message ? (
           <p className="rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-left text-xs text-white/45">

@@ -10,13 +10,13 @@ export default function PrivacyPage() {
   return (
     <LegalCenterCard
       title="Privacy Policy"
-      description="We explain what we collect, why we collect it, and how you can control your data while using LinkUp."
+      description="We explain what we collect, why we collect it, and how you can control your data while using Nyvon."
     >
       <div className="space-y-6">
         <section>
           <h2 className="font-semibold text-white">Data we collect</h2>
           <p className="mt-2 text-white/68">
-            LinkUp may collect account details such as your email address,
+            Nyvon may collect account details such as your email address,
             display name, profile photo, bio, hosted LinkUps, joined LinkUps,
             and basic activity needed to keep the app working.
           </p>
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="font-semibold text-white">Location and nearby features</h2>
           <p className="mt-2 text-white/68">
-            LinkUp is built around nearby real-world plans. The current MVP may
+            Nyvon is built around nearby real-world plans. The current MVP may
             use location labels and approximate/demo map coordinates until exact
             location data is added. Future versions may request device location
             permission only when needed for nearby discovery.

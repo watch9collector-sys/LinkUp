@@ -3,7 +3,7 @@ import { MessagesClient } from "./MessagesClient";
 
 export const metadata: Metadata = {
   title: "Messages",
-  description: "Conversations with people you meet through LinkUp.",
+  description: "Conversations with people you meet through Nyvon.",
 };
 
 export default function MessagesPage() {

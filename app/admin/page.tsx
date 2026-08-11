@@ -25,7 +25,7 @@ export default function AdminPage() {
             Admin access required
           </h1>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/58">
-            This area is only available to LinkUp admins.
+            This area is only available to Nyvon admins.
           </p>
         </GlassCard>
       </div>

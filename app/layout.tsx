@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "LinkUp",
-    template: "%s · LinkUp",
+    default: "Nyvon",
+    template: "%s · Nyvon",
   },
   description:
     "Real-time, location-based meetups — discover nearby LinkUps and show up in the real world.",

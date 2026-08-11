@@ -64,7 +64,7 @@ function BetaMetricsSection() {
   return (
     <section aria-labelledby="beta-metrics-heading">
       <p id="beta-metrics-heading" className={sectionEyebrowClass}>
-        LinkUp Beta
+        Nyvon Beta
       </p>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         {metrics.map((metric) => (
@@ -108,7 +108,7 @@ function OnboardingChecklist() {
     <GlassCard className="border-white/[0.06] px-5 py-5 sm:px-6 sm:py-6">
       <p className={sectionEyebrowClass}>Get started</p>
       <p className="mt-2 text-sm leading-relaxed text-white/60">
-        Three quick steps to get the most out of LinkUp.
+        Three quick steps to get the most out of Nyvon.
       </p>
       <ul className="mt-5 space-y-2.5">
         {steps.map((step, index) => (

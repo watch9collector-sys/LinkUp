@@ -36,7 +36,7 @@ export function MessagesClient() {
           <GlassCard className="border-white/[0.06] p-5">
             <h2 className={sectionEyebrowClass}>While you wait</h2>
             <p className="mt-3 text-sm leading-relaxed text-white/58">
-              LinkUp is intentionally calm: fewer surfaces, clearer intent. Use Explore
+              Nyvon is intentionally calm: fewer surfaces, clearer intent. Use Explore
               and LinkUps to build the in-person graph messages will eventually sit on
               top of.
             </p>

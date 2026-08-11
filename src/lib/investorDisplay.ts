@@ -17,7 +17,7 @@ export function polishProfileBio(bio: string): string {
   const trimmed = bio.trim();
   if (!trimmed) return "";
   if (FOUNDER_BIO_PATTERN.test(trimmed)) {
-    return "Founder & CEO of LinkUp";
+    return "Founder & CEO of Nyvon";
   }
   return trimmed;
 }
