@@ -28,6 +28,10 @@ import {
   sessionRequiresPasswordReset,
   setPasswordResetRequestedEmail,
 } from "@/src/lib/authRecovery";
+import {
+  LINKUP_ATTENDEES_TABLE,
+  LINKUPS_TABLE,
+} from "@/src/lib/linkupsTables";
 
 function HomeTile({
   href,
@@ -55,10 +59,43 @@ function HomeTile({
 }
 
 function BetaMetricsSection() {
+  const [linkupsCreated, setLinkupsCreated] = useState<number | null>(null);
+  const [connectionsMade, setConnectionsMade] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const [linkupsResult, attendeesResult] = await Promise.all([
+        supabase.from(LINKUPS_TABLE).select("id", { count: "exact", head: true }),
+        supabase
+          .from(LINKUP_ATTENDEES_TABLE)
+          .select("id", { count: "exact", head: true }),
+      ]);
+      if (cancelled) return;
+      if (typeof linkupsResult.count === "number") {
+        setLinkupsCreated(linkupsResult.count);
+      }
+      if (typeof attendeesResult.count === "number") {
+        setConnectionsMade(attendeesResult.count);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const metrics = [
     { label: "Beta Testers", value: "25+" },
-    { label: "LinkUps Created", value: "50+" },
-    { label: "Connections Made", value: "100+" },
+    {
+      label: "LinkUps Created",
+      value:
+        linkupsCreated === null ? "\u00a0" : String(linkupsCreated),
+    },
+    {
+      label: "Connections Made",
+      value:
+        connectionsMade === null ? "\u00a0" : String(connectionsMade),
+    },
   ] as const;
 
   return (
