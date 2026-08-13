@@ -10,6 +10,8 @@ This is a [Next.js](https://nextjs.org) app for **Nyvon** (V1 MVP).
   2. `supabase/migrations/20260523100000_linkups_coordinates.sql` **(required if Explore/LinkUps error on `latitude` / `longitude`)**
   3. `supabase/migrations/20260518130000_profile_images_storage.sql`
   4. `supabase/migrations/20260523110000_support_requests.sql`
+  5. `supabase/migrations/20260813120000_moderation_reports_blocks.sql` **(founder moderation, reports, blocks)**
+  6. Optional: `scripts/sql/seed_nyvon_founder.sql` if founder row was not auto-seeded
 - **Auth redirect URLs (Supabase → Authentication → URL configuration):** add each origin you test from, plus the password reset path:
   - `http://localhost:3030/auth/reset-password`
   - `http://<your-lan-ip>:3030/auth/reset-password` (mobile Safari)

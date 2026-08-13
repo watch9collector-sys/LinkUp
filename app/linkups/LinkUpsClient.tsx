@@ -164,10 +164,17 @@ export function LinkUpsClient() {
         linkup={selectedLinkUp}
         signedIn={signedIn}
         busy={selectedLinkUp ? busyId === selectedLinkUp.id : false}
+        currentUserId={user?.id ?? null}
         onClose={() => setDetailsId(null)}
         onJoin={join}
         onLeave={leave}
         onDelete={deleteAsHost}
+        onFounderRemoved={() => {
+          void refresh();
+        }}
+        onBlockedHost={() => {
+          void refresh();
+        }}
         onEdit={
           selectedLinkUp?.you_host
             ? () => {

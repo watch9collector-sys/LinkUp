@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { BlockedUsersPanel } from "../components/moderation/BlockedUsersPanel";
 import { Avatar } from "../components/Avatar";
 import { GlassCard } from "../components/GlassCard";
 import { buttonClasses } from "../components/ui/Button";
@@ -8,7 +8,10 @@ import { PageLoading } from "../components/ui/LoadingStates";
 import { sectionEyebrowClass } from "../components/ui/styles";
 import { useAuthSession } from "@/src/hooks/useAuthSession";
 import { polishProfileBio } from "@/src/lib/investorDisplay";
+import { checkIsPlatformFounder } from "@/src/lib/moderationApi";
 import { getDisplayName } from "@/src/lib/userDisplay";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const legalLinks = [
   { href: "/contact", label: "Contact" },
@@ -20,6 +23,18 @@ const legalLinks = [
 
 export function ProfilePanel() {
   const { user, ready } = useAuthSession();
+  const [isFounder, setIsFounder] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void checkIsPlatformFounder().then((value) => {
+      if (!cancelled) setIsFounder(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   if (!ready) {
     return <PageLoading message="Loading profile…" />;
@@ -90,6 +105,26 @@ export function ProfilePanel() {
           </Link>
         </div>
       </GlassCard>
+
+      <BlockedUsersPanel />
+
+      {isFounder ? (
+        <GlassCard className="border-white/[0.06] p-6 sm:p-7">
+          <h2 className={sectionEyebrowClass}>Founder tools</h2>
+          <p className="mt-2 text-sm leading-relaxed text-white/55">
+            Review user reports submitted through the app.
+          </p>
+          <Link
+            href="/admin"
+            className={[
+              buttonClasses("secondary", "md", false),
+              "mt-4 inline-flex touch-manipulation",
+            ].join(" ")}
+          >
+            Open report review
+          </Link>
+        </GlassCard>
+      ) : null}
 
       <GlassCard className="border-white/[0.06] p-6 sm:p-7">
         <h2 className={sectionEyebrowClass}>Support & legal</h2>

@@ -27,8 +27,6 @@ const nextConfig: NextConfig = {
       { source: "/safety", destination: "/child-safety", permanent: true },
       { source: "/messages", destination: "/explore", permanent: false },
       { source: "/messages/:path*", destination: "/explore", permanent: false },
-      { source: "/admin", destination: "/profile", permanent: false },
-      { source: "/admin/:path*", destination: "/profile", permanent: false },
     ];
   },
 };

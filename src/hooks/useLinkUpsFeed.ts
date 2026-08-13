@@ -12,6 +12,7 @@ import {
 import type { LinkUpView } from "@/src/lib/linkupsTypes";
 import { useAuthSession } from "@/src/hooks/useAuthSession";
 import { polishLinkUpForDisplay } from "@/src/lib/investorDisplay";
+import { fetchBlockedEitherWayIds } from "@/src/lib/moderationApi";
 import { getDisplayName } from "@/src/lib/userDisplay";
 
 const REALTIME_REFETCH_DEBOUNCE_MS = 350;
@@ -46,10 +47,20 @@ export function useLinkUpsFeed() {
         setItems([]);
       } else {
         setError(null);
+        const blockedIds = user
+          ? await fetchBlockedEitherWayIds()
+          : new Set<string>();
+        if (generation !== fetchGenerationRef.current) {
+          return;
+        }
         setItems(
-          data.map((row) =>
-            polishLinkUpForDisplay(toLinkUpView(row, user?.id)),
-          ),
+          data
+            .map((row) => polishLinkUpForDisplay(toLinkUpView(row, user?.id)))
+            .filter((item) => {
+              if (!user?.id) return true;
+              if (item.host_id === user.id) return true;
+              return !blockedIds.has(item.host_id);
+            }),
         );
       }
 
@@ -57,7 +68,7 @@ export function useLinkUpsFeed() {
         setLoading(false);
       }
     },
-    [user?.id],
+    [user],
   );
 
   const scheduleRealtimeRefetch = useCallback(() => {

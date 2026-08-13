@@ -1,44 +1,96 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { LinkUpView } from "@/src/lib/linkupsTypes";
 import { formatLinkUpTime } from "@/src/lib/linkupsApi";
 import { polishDisplayName } from "@/src/lib/investorDisplay";
+import {
+  blockUser,
+  checkIsPlatformFounder,
+  founderRemoveLinkUp,
+} from "@/src/lib/moderationApi";
 import { Avatar } from "../Avatar";
 import { Modal } from "../Modal";
 import { Button, buttonClasses } from "../ui/Button";
+import { ReportModal } from "../moderation/ReportModal";
 
 type LinkUpDetailsModalProps = {
   linkup: LinkUpView | null;
   open: boolean;
   signedIn: boolean;
   busy?: boolean;
+  currentUserId?: string | null;
   onClose: () => void;
   onJoin: (id: string) => void;
   onLeave: (id: string) => void;
   onDelete?: (id: string) => Promise<{ ok: boolean; error: string | null }>;
+  onFounderRemoved?: () => void;
+  onBlockedHost?: (hostId: string) => void;
   onEdit?: () => void;
 };
 
-export function LinkUpDetailsModal({
+type LinkUpDetailsBodyProps = {
+  linkup: LinkUpView;
+  signedIn: boolean;
+  busy: boolean;
+  currentUserId: string | null;
+  onClose: () => void;
+  onJoin: (id: string) => void;
+  onLeave: (id: string) => void;
+  onDelete?: (id: string) => Promise<{ ok: boolean; error: string | null }>;
+  onFounderRemoved?: () => void;
+  onBlockedHost?: (hostId: string) => void;
+  onEdit?: () => void;
+};
+
+function LinkUpDetailsBody({
   linkup,
-  open,
   signedIn,
-  busy = false,
+  busy,
+  currentUserId,
   onClose,
   onJoin,
   onLeave,
   onDelete,
+  onFounderRemoved,
+  onBlockedHost,
   onEdit,
-}: LinkUpDetailsModalProps) {
+}: LinkUpDetailsBodyProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isFounder, setIsFounder] = useState(false);
+  const [confirmFounderRemove, setConfirmFounderRemove] = useState(false);
+  const [founderReason, setFounderReason] = useState("");
+  const [founderBusy, setFounderBusy] = useState(false);
+  const [founderError, setFounderError] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [blockBusy, setBlockBusy] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
+  const [blockDone, setBlockDone] = useState(false);
 
-  if (!linkup) return null;
+  useEffect(() => {
+    if (!signedIn) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void checkIsPlatformFounder().then((value) => {
+        if (!cancelled) setIsFounder(value);
+      });
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [signedIn, currentUserId]);
+
+  const canModerateHost =
+    signedIn &&
+    Boolean(currentUserId) &&
+    currentUserId !== linkup.host_id &&
+    !linkup.you_host;
 
   async function handleDelete() {
-    if (!onDelete || !linkup) return;
+    if (!onDelete) return;
     setDeleteError(null);
     const result = await onDelete(linkup.id);
     if (result.ok) {
@@ -49,8 +101,44 @@ export function LinkUpDetailsModal({
     setDeleteError(result.error);
   }
 
+  async function handleFounderRemove() {
+    setFounderError(null);
+    setFounderBusy(true);
+    try {
+      const { error } = await founderRemoveLinkUp(
+        linkup.id,
+        founderReason.trim() || "Platform moderation removal",
+      );
+      if (error) {
+        setFounderError(error.message);
+        return;
+      }
+      setConfirmFounderRemove(false);
+      onFounderRemoved?.();
+      onClose();
+    } finally {
+      setFounderBusy(false);
+    }
+  }
+
+  async function handleBlockHost() {
+    setBlockError(null);
+    setBlockBusy(true);
+    try {
+      const { error } = await blockUser(linkup.host_id);
+      if (error) {
+        setBlockError(error.message);
+        return;
+      }
+      setBlockDone(true);
+      onBlockedHost?.(linkup.host_id);
+    } finally {
+      setBlockBusy(false);
+    }
+  }
+
   return (
-    <Modal open={open} title="LinkUp details" size="lg" onClose={onClose}>
+    <>
       <div className="space-y-5">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-300/80">
@@ -117,6 +205,97 @@ export function LinkUpDetailsModal({
             </p>
           )}
         </div>
+
+        {canModerateHost ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-white/65"
+              onClick={() => setReportOpen(true)}
+            >
+              Report
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-white/65"
+              loading={blockBusy}
+              disabled={blockDone}
+              onClick={() => void handleBlockHost()}
+            >
+              {blockDone ? "Host blocked" : "Block host"}
+            </Button>
+          </div>
+        ) : null}
+        {blockError ? (
+          <p className="text-xs text-red-300/95" role="alert">
+            {blockError}
+          </p>
+        ) : null}
+
+        {isFounder && !linkup.you_host ? (
+          confirmFounderRemove ? (
+            <div className="space-y-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
+              <p className="text-sm text-red-100/90">
+                Remove this LinkUp from the platform? This cannot be undone.
+              </p>
+              <label
+                className="block text-xs font-medium text-white/70"
+                htmlFor="founder-remove-reason"
+              >
+                Reason (optional)
+              </label>
+              <input
+                id="founder-remove-reason"
+                value={founderReason}
+                onChange={(ev) => setFounderReason(ev.target.value)}
+                maxLength={500}
+                className="mt-1 w-full rounded-xl border border-white/[0.08] bg-[#0B0F14]/60 px-3.5 py-2.5 text-sm text-white outline-none focus:border-emerald-500/45 focus:ring-2 focus:ring-emerald-500/25"
+                placeholder="Moderation reason"
+              />
+              {founderError ? (
+                <p className="text-xs text-red-300/95" role="alert">
+                  {founderError}
+                </p>
+              ) : null}
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="md"
+                  loading={founderBusy}
+                  onClick={() => void handleFounderRemove()}
+                >
+                  Confirm remove
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  disabled={founderBusy}
+                  onClick={() => {
+                    setConfirmFounderRemove(false);
+                    setFounderError(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => setConfirmFounderRemove(true)}
+            >
+              Remove LinkUp (Founder)
+            </Button>
+          )
+        ) : null}
 
         <div className="flex flex-col-reverse gap-3 border-t border-white/[0.07] pt-5 sm:flex-row sm:justify-end">
           <Button type="button" variant="ghost" size="md" onClick={onClose}>
@@ -212,6 +391,50 @@ export function LinkUpDetailsModal({
           )}
         </div>
       </div>
+
+      <ReportModal
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        reportedUserId={linkup.host_id}
+        reportedLinkUpId={linkup.id}
+        title="Report LinkUp"
+      />
+    </>
+  );
+}
+
+export function LinkUpDetailsModal({
+  linkup,
+  open,
+  signedIn,
+  busy = false,
+  currentUserId = null,
+  onClose,
+  onJoin,
+  onLeave,
+  onDelete,
+  onFounderRemoved,
+  onBlockedHost,
+  onEdit,
+}: LinkUpDetailsModalProps) {
+  if (!linkup) return null;
+
+  return (
+    <Modal open={open} title="LinkUp details" size="lg" onClose={onClose}>
+      <LinkUpDetailsBody
+        key={linkup.id}
+        linkup={linkup}
+        signedIn={signedIn}
+        busy={busy}
+        currentUserId={currentUserId}
+        onClose={onClose}
+        onJoin={onJoin}
+        onLeave={onLeave}
+        onDelete={onDelete}
+        onFounderRemoved={onFounderRemoved}
+        onBlockedHost={onBlockedHost}
+        onEdit={onEdit}
+      />
     </Modal>
   );
 }
