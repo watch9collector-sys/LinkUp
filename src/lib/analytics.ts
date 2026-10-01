@@ -1,9 +1,15 @@
 type AnalyticsProperties = Record<string, string | number | boolean | null | undefined>;
 
-const POSTHOG_TOKEN =
-  process.env.NEXT_PUBLIC_POSTHOG_KEY ?? "phc_upRW9f3uSHGs6nYK8CeYPxPapy48WxSXTM44eyv2c5eQ";
-const POSTHOG_HOST =
-  process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
+const POSTHOG_TOKEN = (
+  process.env.NEXT_PUBLIC_POSTHOG_KEY ??
+  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN ??
+  "phc_upRW9f3uSHGs6nYK8CeYPxPapy48WxSXTM44eyv2c5eQ"
+).trim();
+const POSTHOG_HOST = (
+  process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com"
+)
+  .trim()
+  .replace(/\/$/, "");
 
 function attribution() {
   if (typeof window === "undefined") return {};
@@ -29,9 +35,9 @@ export function captureAnalytics(
 
   const payload = {
     api_key: POSTHOG_TOKEN,
+    distinct_id: distinctId,
     event,
     properties: {
-      distinct_id: distinctId,
       $current_url: window.location.href,
       $pathname: window.location.pathname,
       ...attribution(),
