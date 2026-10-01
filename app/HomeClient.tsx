@@ -23,6 +23,7 @@ import {
   normalizeAuthEmail,
 } from "@/src/lib/authUi";
 import { getWelcomeFirstName } from "@/src/lib/investorDisplay";
+import { captureAnalytics } from "@/src/lib/analytics";
 import {
   isPasswordRecoveryPending,
   sessionRequiresPasswordReset,
@@ -474,6 +475,11 @@ export function HomeClient() {
           return;
         }
         setAuthSessionSnapshot(data.session ?? null);
+        if (data.user?.id) {
+          captureAnalytics("user_signed_up", data.user.id, {
+            email_confirmation_pending: isLikelyEmailConfirmationPending(data.user, data.session),
+          });
+        }
         setPassword("");
         if (isLikelyEmailConfirmationPending(data.user, data.session)) {
           setBanner({ kind: "check_email", email: signUpEmail });

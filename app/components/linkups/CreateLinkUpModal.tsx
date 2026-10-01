@@ -9,6 +9,7 @@ import { createLinkUp } from "@/src/lib/linkupsApi";
 import { LINKUP_CATEGORIES } from "@/src/lib/linkupsTypes";
 import type { User } from "@supabase/supabase-js";
 import { getDisplayName } from "@/src/lib/userDisplay";
+import { captureAnalytics } from "@/src/lib/analytics";
 
 function minLocalDatetimeValue(): string {
   const d = new Date();
@@ -91,6 +92,7 @@ export function CreateLinkUpModal({
         setFormError(error.message);
         return;
       }
+      captureAnalytics("linkup_created", user.id, { category });
       reset();
       onCreated();
       onClose();
