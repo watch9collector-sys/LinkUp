@@ -14,6 +14,7 @@ import { useAuthSession } from "@/src/hooks/useAuthSession";
 import { polishLinkUpForDisplay } from "@/src/lib/investorDisplay";
 import { fetchBlockedEitherWayIds } from "@/src/lib/moderationApi";
 import { getDisplayName } from "@/src/lib/userDisplay";
+import { captureAnalytics } from "@/src/lib/analytics";
 
 const REALTIME_REFETCH_DEBOUNCE_MS = 350;
 
@@ -132,6 +133,8 @@ export function useLinkUpsFeed() {
         );
         if (joinError) {
           setError(joinError.message);
+        } else {
+          captureAnalytics("linkup_joined", user.id, { linkup_id: linkupId });
         }
         await runFetch(false);
       } finally {
@@ -154,6 +157,8 @@ export function useLinkUpsFeed() {
         const { error: leaveError } = await leaveLinkUp(linkupId, user.id);
         if (leaveError) {
           setError(leaveError.message);
+        } else {
+          captureAnalytics("linkup_left", user.id, { linkup_id: linkupId });
         }
         await runFetch(false);
       } finally {
