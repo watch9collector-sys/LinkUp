@@ -51,8 +51,21 @@ function HostingTipsAside() {
 }
 
 export function LinkUpsClient() {
-  const { items, loading, error, busyId, join, leave, deleteAsHost, user, ready, refresh } =
-    useLinkUpsFeed();
+  const {
+    items,
+    loading,
+    error,
+    busyId,
+    hasMore,
+    loadingMore,
+    loadMore,
+    join,
+    leave,
+    deleteAsHost,
+    user,
+    ready,
+    refresh,
+  } = useLinkUpsFeed();
   const [modalOpen, setModalOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [editLinkUp, setEditLinkUp] = useState<
@@ -146,6 +159,22 @@ export function LinkUpsClient() {
               onDetails={setDetailsId}
             />
           ))}
+        </div>
+      ) : null}
+
+      {hasMore ? (
+        <div className="flex justify-center">
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            loading={loadingMore}
+            onClick={() => {
+              void loadMore();
+            }}
+          >
+            Load more LinkUps
+          </Button>
         </div>
       ) : null}
 
