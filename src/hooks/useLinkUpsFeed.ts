@@ -9,7 +9,8 @@ import {
   leaveLinkUp,
   toLinkUpView,
 } from "@/src/lib/linkupsApi";
-import type { LinkUpView } from "@/src/lib/linkupsTypes";
+import type { LinkUpRow, LinkUpView } from "@/src/lib/linkupsTypes";
+import type { LinkUpsCursor } from "@/src/lib/linkupsApi";
 import { useAuthSession } from "@/src/hooks/useAuthSession";
 import { polishLinkUpForDisplay } from "@/src/lib/investorDisplay";
 import { fetchBlockedEitherWayIds } from "@/src/lib/moderationApi";
@@ -24,20 +25,44 @@ export function useLinkUpsFeed() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<LinkUpsCursor | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchGenerationRef = useRef(0);
   const debounceTimerRef = useRef<number | null>(null);
 
+  const prepareRows = useCallback(
+    async (rows: LinkUpRow[]) => {
+      const blockedIds = user
+        ? await fetchBlockedEitherWayIds()
+        : new Set<string>();
+
+      return rows
+        .map((row) => polishLinkUpForDisplay(toLinkUpView(row, user?.id)))
+        .filter((item) => {
+          if (!user?.id) return true;
+          if (item.host_id === user.id) return true;
+          return !blockedIds.has(item.host_id);
+        });
+    },
+    [user],
+  );
+
   const runFetch = useCallback(
     async (showSpinner: boolean) => {
       const generation = ++fetchGenerationRef.current;
+      setLoadingMore(false);
 
       if (showSpinner) {
         setLoading(true);
         setError(null);
       }
 
-      const { data, error: fetchError } = await fetchLinkUps();
+      const {
+        data,
+        error: fetchError,
+        nextCursor: fetchedNextCursor,
+      } = await fetchLinkUps();
 
       if (generation !== fetchGenerationRef.current) {
         return;
@@ -46,30 +71,22 @@ export function useLinkUpsFeed() {
       if (fetchError) {
         setError(fetchError.message);
         setItems([]);
+        setNextCursor(null);
       } else {
         setError(null);
-        const blockedIds = user
-          ? await fetchBlockedEitherWayIds()
-          : new Set<string>();
+        const prepared = await prepareRows(data);
         if (generation !== fetchGenerationRef.current) {
           return;
         }
-        setItems(
-          data
-            .map((row) => polishLinkUpForDisplay(toLinkUpView(row, user?.id)))
-            .filter((item) => {
-              if (!user?.id) return true;
-              if (item.host_id === user.id) return true;
-              return !blockedIds.has(item.host_id);
-            }),
-        );
+        setItems(prepared);
+        setNextCursor(fetchedNextCursor);
       }
 
       if (showSpinner) {
         setLoading(false);
       }
     },
-    [user],
+    [prepareRows],
   );
 
   const scheduleRealtimeRefetch = useCallback(() => {
@@ -168,6 +185,49 @@ export function useLinkUpsFeed() {
     [user, items, runFetch],
   );
 
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || loadingMore) return;
+
+    const generation = fetchGenerationRef.current;
+    setLoadingMore(true);
+    setError(null);
+
+    try {
+      const {
+        data,
+        error: fetchError,
+        nextCursor: fetchedNextCursor,
+      } = await fetchLinkUps(nextCursor);
+
+      if (generation !== fetchGenerationRef.current) {
+        return;
+      }
+
+      if (fetchError) {
+        setError(fetchError.message);
+        return;
+      }
+
+      const prepared = await prepareRows(data);
+      if (generation !== fetchGenerationRef.current) {
+        return;
+      }
+
+      setItems((current) => {
+        const existingIds = new Set(current.map((item) => item.id));
+        return [
+          ...current,
+          ...prepared.filter((item) => !existingIds.has(item.id)),
+        ];
+      });
+      setNextCursor(fetchedNextCursor);
+    } finally {
+      if (generation === fetchGenerationRef.current) {
+        setLoadingMore(false);
+      }
+    }
+  }, [loadingMore, nextCursor, prepareRows]);
+
   const refresh = useCallback(() => {
     void runFetch(true);
   }, [runFetch]);
@@ -197,6 +257,9 @@ export function useLinkUpsFeed() {
     loading,
     error,
     busyId,
+    hasMore: Boolean(nextCursor),
+    loadingMore,
+    loadMore,
     refresh,
     join,
     leave,

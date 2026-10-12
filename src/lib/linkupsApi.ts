@@ -53,17 +53,62 @@ function wrapPostgrest(msg: string | undefined | null): string {
   return clarifyPostgrestMessage(msg ?? "Unknown error");
 }
 
-export async function fetchLinkUps(): Promise<{ data: LinkUpRow[]; error: Error | null }> {
-  const { data, error } = await supabase
-    .from(LINKUPS_TABLE)
-    .select(linkupSelect)
-    .order("starts_at", { ascending: true })
-    .limit(50);
+export type LinkUpsCursor = {
+  phase: "upcoming" | "past";
+  offset: number;
+  asOf: string;
+};
+
+const LINKUPS_PAGE_SIZE = 50;
+
+export async function fetchLinkUps(
+  cursor: LinkUpsCursor | null = null,
+  pageSize = LINKUPS_PAGE_SIZE,
+): Promise<{
+  data: LinkUpRow[];
+  error: Error | null;
+  nextCursor: LinkUpsCursor | null;
+}> {
+  const safePageSize = Math.max(1, Math.min(pageSize, 100));
+  const asOf = cursor?.asOf ?? new Date().toISOString();
+  const phase = cursor?.phase ?? "upcoming";
+  const offset = Math.max(0, cursor?.offset ?? 0);
+  const end = offset + safePageSize;
+
+  let query = supabase.from(LINKUPS_TABLE).select(linkupSelect);
+
+  query =
+    phase === "upcoming"
+      ? query
+          .gte("starts_at", asOf)
+          .order("starts_at", { ascending: true })
+          .order("id", { ascending: true })
+      : query
+          .lt("starts_at", asOf)
+          .order("starts_at", { ascending: false })
+          .order("id", { ascending: true });
+
+  const { data, error } = await query.range(offset, end);
 
   if (error) {
-    return { data: [], error: new Error(wrapPostgrest(error.message)) };
+    return {
+      data: [],
+      error: new Error(wrapPostgrest(error.message)),
+      nextCursor: null,
+    };
   }
-  return { data: (data ?? []) as LinkUpRow[], error: null };
+
+  const rows = (data ?? []) as LinkUpRow[];
+  const page = rows.slice(0, safePageSize);
+  const hasMoreInPhase = rows.length > safePageSize;
+
+  const nextCursor: LinkUpsCursor | null = hasMoreInPhase
+    ? { phase, offset: offset + safePageSize, asOf }
+    : phase === "upcoming"
+      ? { phase: "past", offset: 0, asOf }
+      : null;
+
+  return { data: page, error: null, nextCursor };
 }
 
 export async function createLinkUp(input: {
