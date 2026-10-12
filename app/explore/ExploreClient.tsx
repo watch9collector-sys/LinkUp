@@ -9,7 +9,7 @@ import { LinkUpCard } from "../components/linkups/LinkUpCard";
 import { EditLinkUpModal } from "../components/linkups/EditLinkUpModal";
 import { LinkUpDetailsModal } from "../components/linkups/LinkUpDetailsModal";
 import { PageHeader } from "../components/PageHeader";
-import { ButtonLink } from "../components/ui/Button";
+import { Button, ButtonLink } from "../components/ui/Button";
 import { sectionEyebrowClass } from "../components/ui/styles";
 import { useLinkUpsFeed } from "@/src/hooks/useLinkUpsFeed";
 import { linkUpMapPoint } from "@/src/lib/linkupLocations";
@@ -22,8 +22,21 @@ const exploreEmptyHints = [
 ] as const;
 
 export function ExploreClient() {
-  const { items, loading, error, busyId, join, leave, deleteAsHost, user, ready, refresh } =
-    useLinkUpsFeed();
+  const {
+    items,
+    loading,
+    error,
+    busyId,
+    hasMore,
+    loadingMore,
+    loadMore,
+    join,
+    leave,
+    deleteAsHost,
+    user,
+    ready,
+    refresh,
+  } = useLinkUpsFeed();
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [editLinkUp, setEditLinkUp] = useState<
     (typeof items)[number] | null
@@ -107,6 +120,21 @@ export function ExploreClient() {
               />
             ))}
           </div>
+          {hasMore ? (
+            <div className="flex justify-center pt-1">
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                loading={loadingMore}
+                onClick={() => {
+                  void loadMore();
+                }}
+              >
+                Load more LinkUps
+              </Button>
+            </div>
+          ) : null}
         </section>
       ) : null}
 
