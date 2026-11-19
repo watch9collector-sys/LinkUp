@@ -86,6 +86,34 @@ export async function fetchLinkUps(
   return { data: page, error: null, nextCursor };
 }
 
+/** Host-only history. Direct table reads are authorized by the host RLS policy.
+ * Past LinkUps never re-enter public Explore or upcoming discovery.
+ */
+export async function fetchHostedLinkUpHistory(userId: string): Promise<{
+  data: LinkUpView[];
+  error: Error | null;
+}> {
+  const { data, error } = await supabase
+    .from(LINKUPS_TABLE)
+    .select(`
+      id, title, category, location, latitude, longitude, starts_at,
+      description, host_id, host_display_name, created_at, updated_at,
+      linkup_attendees (id, user_id, display_name, joined_at)
+    `)
+    .eq("host_id", userId)
+    .lt("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    return { data: [], error: new Error(wrapPostgrest(error.message)) };
+  }
+  return {
+    data: ((data ?? []) as LinkUpRow[]).map((row) => toLinkUpView(row, userId)),
+    error: null,
+  };
+}
+
 export async function createLinkUp(input: {
   title: string;
   category: string;
