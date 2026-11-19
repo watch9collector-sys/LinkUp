@@ -108,7 +108,7 @@ WITH CHECK (
 
 -- Read-only discovery. Participant/host details are visible ONLY to the
 -- host or a signed-in user who already joined the specific LinkUp.
--- Public/nonparticipant locations are approximate (rounded ~0.1 degree);
+-- Guest/nonparticipant locations and precise coordinates are fully redacted;
 -- exact address and attendee identity are NEVER returned to those roles.
 CREATE OR REPLACE FUNCTION public.fetch_safe_linkups(
   p_as_of timestamptz,
@@ -147,9 +147,9 @@ AS $$
     CASE WHEN (l.is_host OR l.is_joined) THEN l.location
          ELSE 'Location shared with attendees' END AS location,
     CASE WHEN (l.is_host OR l.is_joined) THEN l.latitude
-         ELSE round(l.latitude::numeric, 1)::double precision END AS latitude,
+         ELSE NULL END AS latitude,
     CASE WHEN (l.is_host OR l.is_joined) THEN l.longitude
-         ELSE round(l.longitude::numeric, 1)::double precision END AS longitude,
+         ELSE NULL END AS longitude,
     l.starts_at,
     CASE WHEN (l.is_host OR l.is_joined) THEN l.description ELSE '' END AS description,
     CASE WHEN (l.is_host OR l.is_joined) THEN l.host_id ELSE NULL END AS host_id,
@@ -204,7 +204,8 @@ COMMIT;
 
 -- SECURITY TESTS REQUIRED BEFORE APPROVAL:
 -- 1. anon SELECT from public.linkups and linkup_attendees denied/empty.
--- 2. anon RPC reveals no street addresses, attendee IDs/names or exact coords.
+-- 2. anon RPC reveals NO street addresses, attendee IDs/names, host ID,
+--    or coordinates (even approximately); public map pins remain hidden.
 -- 3. signed-in nonparticipant gets public-only fields; host/member gets details.
 -- 4. cross-user raw SELECT cannot read another private LinkUp; no host_id
 --    exposed to any nonparticipant; reporting and blocking still operate.
