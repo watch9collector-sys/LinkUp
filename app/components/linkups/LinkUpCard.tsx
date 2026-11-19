@@ -33,7 +33,8 @@ export function LinkUpCard({
     return a.display_name.localeCompare(b.display_name);
   });
 
-  const statusLabel = linkup.you_host
+  const isPast = Date.parse(linkup.starts_at) <= Date.now();
+  const statusLabel = isPast ? "Past" : linkup.you_host
     ? "Hosting"
     : linkup.you_joined
       ? "Joined"
@@ -106,7 +107,7 @@ export function LinkUpCard({
 
       {linkup.you_host || linkup.you_joined ? (
         <>
-        <button
+          <button
           type="button"
           onClick={() => setShowAttendees((v) => !v)}
           className="mt-3 w-full rounded-xl py-2 text-left text-xs font-medium text-white/45 transition hover:bg-white/[0.04] hover:text-white/70"
@@ -153,7 +154,9 @@ export function LinkUpCard({
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {linkup.you_host ? (
+        {isPast ? (
+          <p className="self-center text-xs text-white/45">This LinkUp has already started.</p>
+        ) : linkup.you_host ? (
           <p className="self-center text-xs text-white/45">
             You are hosting this LinkUp.
           </p>
