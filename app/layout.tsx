@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { AuthRecoveryRedirect } from "./components/AuthRecoveryRedirect";
 import { Navbar } from "./components/Navbar";
+import { SiteFooter } from "./components/SiteFooter";
 import { RECOVERY_REDIRECT_SCRIPT } from "@/src/lib/authRecovery";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
@@ -45,6 +46,7 @@ export default function RootLayout({
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-7 pb-28 pt-6 sm:px-5 md:py-9 md:pb-10 md:pt-7 lg:px-6">
           {children}
         </main>
+        <SiteFooter />
       </body>
     </html>
   );
