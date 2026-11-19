@@ -14,9 +14,9 @@ database changes and deploy. Never silently fall back to unsafe public table
 SELECTs.
 
 ## Fixes and acceptance checks
-1. **Guest privacy — needs staging security audit.**
+1. **Guest privacy — SQL staging tests passed; HTTP/Realtime security tests still pending.**
    - `supabase/migrations/20261119120000_secure_linkup_discovery.sql` is a
-     proposed migration, not applied anywhere by this branch.
+     draft production migration, applied and tested ONLY in isolated staging.
    - `src/lib/linkupsApi.ts`, `src/lib/linkupsTypes.ts`,
      `src/lib/linkupLocations.ts`, `app/explore/ExploreClient.tsx`,
      `app/components/linkups/LinkUpCard.tsx`, and
@@ -32,13 +32,13 @@ SELECTs.
      contain exact addresses. Add host safety guidance/moderation if needed.
    - RLS helpers must be audited for escalation, recursion and performance.
      Review ALL live policies/grants before applying. The migration fails
-     intentionally if unexpected SELECT policies are present.
-2. **Expired LinkUps — staged.**
+     intentionally if unexpected policies of ANY command are present.
+2. **Expired LinkUps — database tests passed in staging.**
    - Shared discovery now queries upcoming events only, including pagination.
    - Verify cards, details, and map do not show past events. Verify 62 historical
      events remain unchanged in DB; 65/3 counts are audit snapshots, not a
      permanent assertion. Use current timestamps and exact time zones.
-   - Database policy proposes rejection of new joins for expired events.
+   - Database insert policy rejects expired joins (verified by SQL-level staging test).
    - Confirm hosts can still access their prior events via a separate history
      mechanism before claiming full history behavior is preserved.
 3. **Account deletion — copy clarified; workflow NOT complete.**
@@ -100,13 +100,19 @@ SELECTs.
   feature works or permission to publish.
 
 ## Status
-- GitHub branch: prepared for code review.
-- Static code review: ongoing.
-- Migration: proposed, not applied/tested.
-- Staging/Android E2E: outstanding.
-- Jaro 2 independent review: outstanding.
-- Google Play V1.5: previously approved, owner holds publication.
-- Launch: NO GO until security and deletion workflows are demonstrated.
+- PR #4 is DRAFT and unmerged; `main` remains unchanged.
+- Code/design and SQL layer: independent Jaro 2 review PASSED at head e1fe1ed;
+  newer documentation/security commits should be re-reviewed independently.
+- Migration: applied and tested only in `nyvon-v1-5-staging`, NOT production.
+- SQL/RLS checks: passed using synthetic users and transaction-local role
+  simulation; real PostgREST login/JWT and WebSocket tests remain open.
+- CI: lint and build passed; not equivalent to app/Android functional tests.
+- Realtime, Android and staging-connected browser tests: PENDING.
+- Account deletion: draft SOP only; permanent completion NOT verified.
+- Play V1.5: owner holds publishing and Data safety decisions.
+- Launch: NO GO until all staging/API/Realtime/Android, deletion and review
+  gates pass, followed by separately authorized production change window.
+- See `docs/NYVON_V1_5_STAGING_EVIDENCE_20261119.md`.
 
 
 ## Jaro 2 independent-review findings — response on 2026-11-19
