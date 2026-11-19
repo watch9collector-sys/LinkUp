@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Syntax-check isolated staging HTTP test (no network calls)
+        run: node --check scripts/qa/verify-staging-anon-http.mjs
+
       - name: Lint
         run: npm run lint
 
