@@ -54,7 +54,6 @@ function wrapPostgrest(msg: string | undefined | null): string {
 }
 
 export type LinkUpsCursor = {
-  phase: "upcoming" | "past";
   offset: number;
   asOf: string;
 };
@@ -71,24 +70,18 @@ export async function fetchLinkUps(
 }> {
   const safePageSize = Math.max(1, Math.min(pageSize, 100));
   const asOf = cursor?.asOf ?? new Date().toISOString();
-  const phase = cursor?.phase ?? "upcoming";
   const offset = Math.max(0, cursor?.offset ?? 0);
   const end = offset + safePageSize;
 
-  let query = supabase.from(LINKUPS_TABLE).select(linkupSelect);
-
-  query =
-    phase === "upcoming"
-      ? query
-          .gte("starts_at", asOf)
-          .order("starts_at", { ascending: true })
-          .order("id", { ascending: true })
-      : query
-          .lt("starts_at", asOf)
-          .order("starts_at", { ascending: false })
-          .order("id", { ascending: true });
-
-  const { data, error } = await query.range(offset, end);
+  // Public discovery shows upcoming events only. Historical LinkUps stay in
+  // Supabase unchanged; this read-only query never deletes or edits records.
+  const { data, error } = await supabase
+    .from(LINKUPS_TABLE)
+    .select(linkupSelect)
+    .gte("starts_at", asOf)
+    .order("starts_at", { ascending: true })
+    .order("id", { ascending: true })
+    .range(offset, end);
 
   if (error) {
     return {
@@ -103,10 +96,8 @@ export async function fetchLinkUps(
   const hasMoreInPhase = rows.length > safePageSize;
 
   const nextCursor: LinkUpsCursor | null = hasMoreInPhase
-    ? { phase, offset: offset + safePageSize, asOf }
-    : phase === "upcoming"
-      ? { phase: "past", offset: 0, asOf }
-      : null;
+    ? { offset: offset + safePageSize, asOf }
+    : null;
 
   return { data: page, error: null, nextCursor };
 }
