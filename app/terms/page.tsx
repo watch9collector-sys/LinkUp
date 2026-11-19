@@ -23,7 +23,7 @@ export default function TermsPage() {
           <h2 className="font-semibold text-white">Acceptable use</h2>
           <p className="mt-2 text-white/68">
             Use Nyvon lawfully and respectfully. Do not harass, threaten,
-            discriminate, impersonate, defraud, spam, share another person's
+            discriminate, impersonate, defraud, spam, share another person&apos;s
             private address without permission, or organize unsafe or illegal
             activities.
           </p>
@@ -34,7 +34,7 @@ export default function TermsPage() {
             Event hosts are responsible for the accuracy of their descriptions,
             dates, and meeting places. Participants must exercise care when
             meeting others in person. Nyvon does not supervise or guarantee
-            any meetup or other user's conduct.
+            any meetup or other user&apos;s conduct.
           </p>
         </section>
         <section>
