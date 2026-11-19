@@ -6,9 +6,17 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # Synthetic credentials used strictly for compile-time env validation.
+    # NEVER point PR CI at production Supabase or expose production secrets.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-preview.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZWYiOiJjaS1wcmV2aWV3Iiwicm9sZSI6ImFub24ifQ.ci-not-a-real-key
     steps:
       - uses: actions/checkout@v4
 
@@ -23,28 +31,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Validate environment
-        run: node scripts/validate-env.mjs
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-
-      - name: Build
+      - name: Build (compile only, no production credentials)
         run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: Verify Supabase schema
-        if: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL != '' }}
-        run: npm run verify:supabase
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-
-      - name: Verify storage bucket
-        if: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL != '' }}
-        run: npm run verify:storage
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      # Schema, RLS, security RPCs, and storage require separately approved
+      # isolated STAGING integration tests. They must not use production keys
+      # or run production SQL in pull-request CI.
