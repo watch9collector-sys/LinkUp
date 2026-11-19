@@ -188,7 +188,11 @@ function LinkUpDetailsBody({
           <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40">
             Active attendees
           </h3>
-          {linkup.active_attendees.length > 0 ? (
+          {!linkup.you_host && !linkup.you_joined ? (
+            <p className="mt-2 text-sm text-white/45">
+              {linkup.attendee_count} going. Attendee identities are available after joining.
+            </p>
+          ) : linkup.active_attendees.length > 0 ? (
             <ul className="mt-3 flex flex-wrap gap-2">
               {linkup.active_attendees.slice(0, 8).map((attendee) => (
                 <li
