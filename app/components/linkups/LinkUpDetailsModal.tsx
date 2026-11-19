@@ -6,7 +6,7 @@ import type { LinkUpView } from "@/src/lib/linkupsTypes";
 import { formatLinkUpTime } from "@/src/lib/linkupsApi";
 import { polishDisplayName } from "@/src/lib/investorDisplay";
 import {
-  blockUser,
+  blockLinkUpHost,
   checkIsPlatformFounder,
   founderRemoveLinkUp,
 } from "@/src/lib/moderationApi";
@@ -26,7 +26,7 @@ type LinkUpDetailsModalProps = {
   onLeave: (id: string) => void;
   onDelete?: (id: string) => Promise<{ ok: boolean; error: string | null }>;
   onFounderRemoved?: () => void;
-  onBlockedHost?: (hostId: string) => void;
+  onBlockedHost?: () => void;
   onEdit?: () => void;
 };
 
@@ -40,7 +40,7 @@ type LinkUpDetailsBodyProps = {
   onLeave: (id: string) => void;
   onDelete?: (id: string) => Promise<{ ok: boolean; error: string | null }>;
   onFounderRemoved?: () => void;
-  onBlockedHost?: (hostId: string) => void;
+  onBlockedHost?: () => void;
   onEdit?: () => void;
 };
 
@@ -125,13 +125,13 @@ function LinkUpDetailsBody({
     setBlockError(null);
     setBlockBusy(true);
     try {
-      const { error } = await blockUser(linkup.host_id);
+      const { error } = await blockLinkUpHost(linkup.id);
       if (error) {
         setBlockError(error.message);
         return;
       }
       setBlockDone(true);
-      onBlockedHost?.(linkup.host_id);
+      onBlockedHost?.();
     } finally {
       setBlockBusy(false);
     }
@@ -399,7 +399,7 @@ function LinkUpDetailsBody({
       <ReportModal
         open={reportOpen}
         onClose={() => setReportOpen(false)}
-        reportedUserId={linkup.host_id}
+        reportedUserId={linkup.host_id || null}
         reportedLinkUpId={linkup.id}
         title="Report LinkUp"
       />
