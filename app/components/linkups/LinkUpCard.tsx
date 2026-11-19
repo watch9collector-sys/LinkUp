@@ -104,45 +104,53 @@ export function LinkUpCard({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setShowAttendees((v) => !v)}
-        className="mt-3 w-full rounded-xl py-2 text-left text-xs font-medium text-white/45 transition hover:bg-white/[0.04] hover:text-white/70"
-        aria-expanded={showAttendees}
-      >
-        {showAttendees ? "Hide" : "View"} active attendees
-      </button>
-
-      <div
-        className={[
-          "grid transition-[grid-template-rows] duration-200 ease-out",
-          showAttendees ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-        ].join(" ")}
-      >
-        <div className="overflow-hidden">
-          <ul className="mt-1 space-y-1.5 rounded-xl border border-white/[0.05] bg-[#0B0F14]/40 px-3 py-2.5">
-            {sortedAttendees.length === 0 ? (
-              <li className="text-sm text-white/45">No one yet — be the first.</li>
-            ) : (
-              sortedAttendees.map((a) => (
-                <li
-                  key={a.user_id}
-                  className="flex items-center justify-between gap-2 text-sm text-white/80"
-                >
-                  <span className="truncate">
-                    {polishDisplayName(a.display_name.trim() || "Member")}
-                    {a.user_id === linkup.host_id ? (
-                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-400/80">
-                        host
-                      </span>
-                    ) : null}
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
+      {linkup.you_host || linkup.you_joined ? (
+        <>
+        <button
+          type="button"
+          onClick={() => setShowAttendees((v) => !v)}
+          className="mt-3 w-full rounded-xl py-2 text-left text-xs font-medium text-white/45 transition hover:bg-white/[0.04] hover:text-white/70"
+          aria-expanded={showAttendees}
+        >
+          {showAttendees ? "Hide" : "View"} active attendees
+        </button>
+  
+        <div
+          className={[
+            "grid transition-[grid-template-rows] duration-200 ease-out",
+            showAttendees ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+          ].join(" ")}
+        >
+          <div className="overflow-hidden">
+            <ul className="mt-1 space-y-1.5 rounded-xl border border-white/[0.05] bg-[#0B0F14]/40 px-3 py-2.5">
+              {sortedAttendees.length === 0 ? (
+                <li className="text-sm text-white/45">No one yet — be the first.</li>
+              ) : (
+                sortedAttendees.map((a) => (
+                  <li
+                    key={a.user_id}
+                    className="flex items-center justify-between gap-2 text-sm text-white/80"
+                  >
+                    <span className="truncate">
+                      {polishDisplayName(a.display_name.trim() || "Member")}
+                      {a.user_id === linkup.host_id ? (
+                        <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-400/80">
+                          host
+                        </span>
+                      ) : null}
+                    </span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
         </div>
-      </div>
+        </>
+      ) : (
+        <p className="mt-3 text-xs text-white/45">
+          Attendee identities are available after joining.
+        </p>
+      )}
 
       <div className="mt-4 flex flex-wrap gap-2">
         {linkup.you_host ? (
