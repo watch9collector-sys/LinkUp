@@ -149,3 +149,31 @@ Review result before these revisions: CONDITIONAL PASS / DO NOT MERGE.
   the new permission model. The public 1.5 Android app may call existing APIs.
 - Do not publish Privacy Policy drafts until facts are confirmed; the draft
   is not legal advice and does not establish a deletion process.
+
+
+## Read-only Supabase connection verification — November 19, 2026
+- Connected project: `linkup-prod` ACTIVE_HEALTHY; older `linkup`
+  project INACTIVE. Neither was modified or restored.
+- Active LinkUp tables report **65 LinkUps** and **142 attendee records**.
+  These are a snapshot, not an authorization to export or edit records.
+- No existing Supabase development branches were listed for either project.
+- Organization plan is **free**; staging cost/availability must be checked
+  with Joshua before any project or branch creation. The inactive older
+  project is NOT assumed safe to reuse as staging.
+- Production metadata inspection confirmed the expected existing policies:
+  linkups host-scoped INSERT, UPDATE and DELETE; attendee self-scoped INSERT
+  (including blocked-user check) and DELETE; both SELECT-all policies are
+  permissive for PUBLIC. It also confirmed the dependency functions
+  `users_blocked_either_way(uuid,uuid)` and `my_interaction_block_ids()`,
+  plus unique `user_blocks_unique`.
+- Important additional finding: anon and authenticated roles currently
+  have broader table grants than necessary, including TRUNCATE, REFERENCES,
+  and TRIGGER. A new review commit revokes all table privileges from PUBLIC,
+  anon and authenticated on the two LinkUp tables, then grants only the
+  expected authenticated SELECT/INSERT/UPDATE/DELETE scopes. **This change
+  is in proposed SQL on the GitHub draft branch only. No grants were changed
+  in production.**
+- Staging test matrix MUST verify anon cannot TRUNCATE, REFERENCES,
+  TRIGGER or otherwise directly read or mutate either table, and that
+  authenticated CRUD still passes host/self RLS and the new RPCs.
+- This new security change requires another independent Jaro 2 review.
