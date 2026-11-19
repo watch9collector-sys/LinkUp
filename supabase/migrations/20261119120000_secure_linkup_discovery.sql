@@ -76,8 +76,16 @@ USING (
   OR public.current_user_hosts_linkup(linkup_id)
 );
 
-REVOKE SELECT ON public.linkups FROM anon;
-REVOKE SELECT ON public.linkup_attendees FROM anon;
+-- Production preflight found legacy grants of ALL table privileges to anon
+-- (including TRUNCATE, REFERENCES and TRIGGER), despite RLS. RLS does not
+-- protect TRUNCATE. Harden table grants rather than revoking SELECT alone.
+-- SECURITY DEFINER discovery RPC remains available to anon independently.
+REVOKE ALL PRIVILEGES ON TABLE public.linkups, public.linkup_attendees
+  FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.linkups
+  TO authenticated;
+GRANT SELECT, INSERT, DELETE ON TABLE public.linkup_attendees
+  TO authenticated;
 
 -- Enforce BOTH future date and blocked-host rule using privileged reads.
 -- Nonparticipants cannot SELECT the raw LinkUp table under participant-only
@@ -208,7 +216,9 @@ GRANT EXECUTE ON FUNCTION public.block_linkup_host(uuid) TO authenticated;
 COMMIT;
 
 -- SECURITY TESTS REQUIRED BEFORE APPROVAL:
--- 1. anon SELECT from public.linkups and linkup_attendees denied/empty.
+-- 1. anon has NO direct table privileges including TRUNCATE, INSERT,
+--    UPDATE, DELETE, SELECT, REFERENCES or TRIGGER. Authenticated roles have
+--    only required privileges and host/self RLS applies.
 -- 2. anon RPC reveals NO street addresses, attendee IDs/names, host ID,
 --    or coordinates (even approximately); public map pins remain hidden.
 -- 3. signed-in nonparticipant gets public-only fields; host/member gets details.
