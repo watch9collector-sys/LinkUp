@@ -79,31 +79,36 @@ USING (
 REVOKE SELECT ON public.linkups FROM anon;
 REVOKE SELECT ON public.linkup_attendees FROM anon;
 
--- Prevent joins to already-past events even through direct database requests.
-CREATE OR REPLACE FUNCTION public.linkup_is_upcoming(p_linkup_id uuid)
+-- Enforce BOTH future date and blocked-host rule using privileged reads.
+-- Nonparticipants cannot SELECT the raw LinkUp table under participant-only
+-- RLS, so a plain NOT EXISTS subquery in an INSERT policy would be bypassable.
+CREATE OR REPLACE FUNCTION public.linkup_join_allowed(p_linkup_id uuid)
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
 AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.linkups l
-    WHERE l.id = p_linkup_id AND l.starts_at > now()
+  SELECT (SELECT auth.uid()) IS NOT NULL AND EXISTS (
+    SELECT 1
+    FROM public.linkups l
+    WHERE l.id = p_linkup_id
+      AND l.starts_at > now()
+      AND NOT EXISTS (
+        SELECT 1 FROM public.user_blocks b
+        WHERE
+          (b.blocker_id = (SELECT auth.uid()) AND b.blocked_id = l.host_id)
+          OR
+          (b.blocker_id = l.host_id AND b.blocked_id = (SELECT auth.uid()))
+      )
   );
 $$;
-REVOKE ALL ON FUNCTION public.linkup_is_upcoming(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.linkup_is_upcoming(uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.linkup_join_allowed(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.linkup_join_allowed(uuid) TO authenticated;
 
 DROP POLICY IF EXISTS linkup_attendees_insert_self ON public.linkup_attendees;
 CREATE POLICY linkup_attendees_insert_self ON public.linkup_attendees
 FOR INSERT TO authenticated
 WITH CHECK (
   user_id = (SELECT auth.uid())
-  AND public.linkup_is_upcoming(linkup_id)
-  AND NOT EXISTS (
-    SELECT 1
-    FROM public.linkups l
-    WHERE l.id = linkup_id
-      AND public.users_blocked_either_way((SELECT auth.uid()), l.host_id)
-  )
+  AND public.linkup_join_allowed(linkup_id)
 );
 
 -- Read-only discovery. Participant/host details are visible ONLY to the
@@ -210,7 +215,8 @@ COMMIT;
 -- 4. cross-user raw SELECT cannot read another private LinkUp; no host_id
 --    exposed to any nonparticipant; reporting and blocking still operate.
 -- 5. host create/edit/delete works; new attendee can join upcoming, leave,
---    and cannot join expired or blocked hosts; block_linkup_host succeeds
+--    and cannot join expired or blocked hosts via linkup_join_allowed;
+--    block_linkup_host succeeds
 --    for nonparticipants but never returns a host UUID.
 -- 6. Check row count/status unchanged before/after; do not use old DROP script.
 -- Rollback requires a new privacy-preserving policy, NEVER reinstating anon
