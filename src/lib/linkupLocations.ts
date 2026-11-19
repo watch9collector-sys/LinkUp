@@ -13,6 +13,7 @@ export type LinkUpMapPoint = {
   lat: number;
   lng: number;
   approximate: boolean;
+  hasStoredCoordinates: boolean;
 };
 
 export const DEFAULT_LINKUP_MAP_CENTER = {
@@ -52,7 +53,8 @@ export function linkUpMapPoint(linkup: LinkUpView): LinkUpMapPoint {
       youHost: linkup.you_host,
       lat,
       lng,
-      approximate: false,
+      approximate: linkup.location_is_approximate,
+      hasStoredCoordinates: true,
     };
   }
 
@@ -71,5 +73,6 @@ export function linkUpMapPoint(linkup: LinkUpView): LinkUpMapPoint {
     lat: DEFAULT_LINKUP_MAP_CENTER.lat + offset.lat,
     lng: DEFAULT_LINKUP_MAP_CENTER.lng + offset.lng,
     approximate: true,
+    hasStoredCoordinates: false,
   };
 }
