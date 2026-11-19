@@ -7,18 +7,34 @@
 
 BEGIN;
 
--- Stop if another SELECT/ALL policy exists that would silently bypass the
--- restrictions below. Review and explicitly incorporate those policies first.
+-- Strict inventory of EVERY policy, not just SELECT. Unexpected policies
+-- (including a broad ALL/INSERT/UPDATE/DELETE policy) stop the transaction.
+-- Inspect pg_policies and all grants in staging before attempting migration.
 DO $guard$
 BEGIN
   IF EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public'
-      AND tablename IN ('linkups', 'linkup_attendees')
-      AND cmd IN ('SELECT', 'ALL')
-      AND policyname NOT IN ('linkups_select_all', 'linkup_attendees_select_all')
+    SELECT 1
+    FROM pg_policies p
+    WHERE p.schemaname = 'public'
+      AND p.tablename IN ('linkups', 'linkup_attendees')
+      AND NOT EXISTS (
+        SELECT 1 FROM (VALUES
+          ('linkups', 'linkups_select_all', 'SELECT'),
+          ('linkups', 'linkups_select_participants', 'SELECT'),
+          ('linkups', 'linkups_insert_host', 'INSERT'),
+          ('linkups', 'linkups_update_host', 'UPDATE'),
+          ('linkups', 'linkups_delete_host', 'DELETE'),
+          ('linkup_attendees', 'linkup_attendees_select_all', 'SELECT'),
+          ('linkup_attendees', 'linkup_attendees_select_participants', 'SELECT'),
+          ('linkup_attendees', 'linkup_attendees_insert_self', 'INSERT'),
+          ('linkup_attendees', 'linkup_attendees_delete_self', 'DELETE')
+        ) AS allowed(table_name, policy_name, command)
+        WHERE allowed.table_name = p.tablename
+          AND allowed.policy_name = p.policyname
+          AND allowed.command = p.cmd
+      )
   ) THEN
-    RAISE EXCEPTION 'Unexpected LinkUp SELECT policy. Audit pg_policies before applying this migration.';
+    RAISE EXCEPTION 'Unexpected LinkUp policy (any command). Inventory pg_policies before proceeding.';
   END IF;
 END;
 $guard$;
@@ -82,6 +98,12 @@ FOR INSERT TO authenticated
 WITH CHECK (
   user_id = (SELECT auth.uid())
   AND public.linkup_is_upcoming(linkup_id)
+  AND NOT EXISTS (
+    SELECT 1
+    FROM public.linkups l
+    WHERE l.id = linkup_id
+      AND public.users_blocked_either_way((SELECT auth.uid()), l.host_id)
+  )
 );
 
 -- Read-only discovery. Participant/host details are visible ONLY to the
@@ -112,6 +134,10 @@ AS $$
       )) AS is_joined
     FROM public.linkups l
     WHERE l.starts_at >= GREATEST(p_as_of, now())
+      AND (
+        (SELECT auth.uid()) IS NULL
+        OR NOT public.users_blocked_either_way((SELECT auth.uid()), l.host_id)
+      )
     ORDER BY l.starts_at ASC, l.id ASC
     LIMIT LEAST(GREATEST(p_limit, 1), 101)
     OFFSET GREATEST(p_offset, 0)
@@ -126,7 +152,7 @@ AS $$
          ELSE round(l.longitude::numeric, 1)::double precision END AS longitude,
     l.starts_at,
     CASE WHEN (l.is_host OR l.is_joined) THEN l.description ELSE '' END AS description,
-    CASE WHEN (SELECT auth.uid()) IS NOT NULL THEN l.host_id ELSE NULL END AS host_id,
+    CASE WHEN (l.is_host OR l.is_joined) THEN l.host_id ELSE NULL END AS host_id,
     CASE WHEN (l.is_host OR l.is_joined) THEN l.host_display_name ELSE 'Host' END AS host_display_name,
     l.created_at, l.updated_at,
     CASE WHEN (l.is_host OR l.is_joined) THEN COALESCE((
@@ -145,15 +171,46 @@ $$;
 REVOKE ALL ON FUNCTION public.fetch_safe_linkups(timestamptz, integer, integer) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.fetch_safe_linkups(timestamptz, integer, integer) TO anon, authenticated;
 
+-- Signed-in nonparticipants can block the host without receiving the host's
+-- internal UUID. This uses the LinkUp id as the target and is idempotent.
+CREATE OR REPLACE FUNCTION public.block_linkup_host(p_linkup_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $
+DECLARE
+  v_blocker uuid := (SELECT auth.uid());
+  v_host uuid;
+BEGIN
+  IF v_blocker IS NULL THEN
+    RAISE EXCEPTION 'Sign in to block a host';
+  END IF;
+  SELECT l.host_id INTO v_host
+  FROM public.linkups l WHERE l.id = p_linkup_id;
+  IF v_host IS NULL THEN
+    RAISE EXCEPTION 'LinkUp not found';
+  END IF;
+  IF v_blocker = v_host THEN
+    RAISE EXCEPTION 'You cannot block yourself';
+  END IF;
+  INSERT INTO public.user_blocks(blocker_id, blocked_id)
+  VALUES (v_blocker, v_host)
+  ON CONFLICT (blocker_id, blocked_id) DO NOTHING;
+END;
+$;
+REVOKE ALL ON FUNCTION public.block_linkup_host(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.block_linkup_host(uuid) TO authenticated;
+
 COMMIT;
 
 -- SECURITY TESTS REQUIRED BEFORE APPROVAL:
 -- 1. anon SELECT from public.linkups and linkup_attendees denied/empty.
 -- 2. anon RPC reveals no street addresses, attendee IDs/names or exact coords.
 -- 3. signed-in nonparticipant gets public-only fields; host/member gets details.
--- 4. cross-user raw SELECT cannot read someone else's private LinkUp.
+-- 4. cross-user raw SELECT cannot read another private LinkUp; no host_id
+--    exposed to any nonparticipant; reporting and blocking still operate.
 -- 5. host create/edit/delete works; new attendee can join upcoming, leave,
---    and cannot join expired; blocked-user rules verified independently.
+--    and cannot join expired or blocked hosts; block_linkup_host succeeds
+--    for nonparticipants but never returns a host UUID.
 -- 6. Check row count/status unchanged before/after; do not use old DROP script.
 -- Rollback requires a new privacy-preserving policy, NEVER reinstating anon
 -- SELECT ALL or restoring sensitive guest data.
