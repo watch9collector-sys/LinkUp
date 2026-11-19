@@ -106,3 +106,45 @@ SELECTs.
 - Jaro 2 independent review: outstanding.
 - Google Play V1.5: previously approved, owner holds publication.
 - Launch: NO GO until security and deletion workflows are demonstrated.
+
+
+## Jaro 2 independent-review findings — response on 2026-11-19
+Review result before these revisions: CONDITIONAL PASS / DO NOT MERGE.
+- **All RLS policies:** Migration now rejects unexpected SELECT, INSERT,
+  UPDATE, DELETE or ALL policies on LinkUp tables. This is a conservative
+  allowlist, NOT proof of deployed SQL safety. Inventory current
+  pg_policies, grantees, roles, security-definer ownership, and behavior in
+  an isolated staging project. The older moderation migration contains a
+  blocked-user join safeguard; the new `linkup_join_allowed` SECURITY DEFINER
+  must preserve both blocked-user denial and event-time checks under private RLS.
+- **History:** `fetchHostedLinkUpHistory` and `HostedLinkUpHistory` provide a
+  private, read-only list of 50 most recent past events for signed-in hosts.
+  Verify RLS and no access to other hosts' history in staging. Pagination
+  beyond 50 remains future work.
+- **Host identifiers:** Discovery RPC now returns a host UUID ONLY to the
+  host or an already-joined participant. Report submission can resolve host
+  from LinkUp ID; block-host uses proposed `block_linkup_host` RPC.
+  Review how user_blocks and the existing `my_interaction_block_ids` API
+  handle identity disclosure, and test both actions end-to-end.
+- **CI:** Repaired PR workflow (no production secrets; synthetic build env).
+  CI lint and build need to pass on final branch commit. Vercel's Ready status
+  alone does NOT constitute functional or security test evidence.
+- **Map privacy:** To avoid a home-address disclosure even at ~11 km granularity,
+  nonparticipants receive NULL latitude/longitude. Guests see discovery
+  cards without precise pins until a separately approved city-level discovery
+  location exists. This is a deliberate visibility trade-off.
+- **Additional scope:** profiles, public avatar/photo storage, realtime
+  payloads and existing guest titles/descriptions must be audited separately.
+- **Release sequencing:** migrate staging → test frontend against staging →
+  verify guest and authenticated read/write and realtime behavior → production
+  backup → explicit new approval for matching server/client release window.
+
+### Important data-safety clarifications
+- Even with a zero-row-update migration, RLS policy and RPC changes are
+  production-affecting DDL; never characterize applying them as zero-risk.
+- The SQL draft is not a complete security assessment; inspect function owners,
+  execution grants, role-specific RLS behavior and all dependent features.
+- Do not merge before verifying cross-platform Android app compatibility with
+  the new permission model. The public 1.5 Android app may call existing APIs.
+- Do not publish Privacy Policy drafts until facts are confirmed; the draft
+  is not legal advice and does not establish a deletion process.
