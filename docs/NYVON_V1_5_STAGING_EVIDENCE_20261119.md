@@ -120,3 +120,33 @@ https://supabase.com/docs/guides/database/database-linter for context.
    window after all preceding applicable tests pass.
 
 **No production changes, no merging and no publishing were done.**
+
+
+## Independent-review follow-up (same staging project; 2026-11-19)
+
+A separate SQL-level check explicitly verified host-history row isolation:
+`host-a` can read the synthetic `Staging A past` event; `host-b`
+receives zero rows for that host's past event. These are **SQL-role** tests,
+not the still-required actual PostgREST host-history requests.
+
+**Correction to reviewer interpretation:** The deployed staging
+`submit_user_report` implementation has NO check that prevents reporting
+a host after that host is blocked. The actual transaction tested:
+1. Synthetic member B blocked synthetic host A using `block_linkup_host`;
+2. The host's event disappeared from member B's discovery results;
+3. `submit_user_report('safety_concern', ..., NULL, linkup_id)` nevertheless
+   succeeded, storing a report linked to the correct host.
+All changes were rolled back. Thus **block-then-report is allowed**, not
+denied; do not claim a blocked-user report rejection passed without a
+separate explicit requirement and approved test. Allowing reports after
+blocking may be desirable for safety/escalation. Do not change this
+behavior or the live MVP solely based on a mistaken test expectation.
+
+Jaro 2's note about the SQL function dollar quotes was checked against the
+actual evidence: this document already says **named dollar-quoting**, and the
+committed SQL uses `$block_linkup_host$`. No wording change was needed.
+
+Remaining evidence gap: API/HTTP with real JWTs, Realtime WebSocket with
+real subscribers, staging-specific frontend deployment, Android smoke tests,
+and the full deletion process are still **NOT tested**. Schema/RLS simulation
+cannot substitute for these checks.
