@@ -213,6 +213,52 @@ $block_linkup_host$;
 REVOKE ALL ON FUNCTION public.block_linkup_host(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.block_linkup_host(uuid) TO authenticated;
 
+-- Supabase may grant EXECUTE directly to anon/authenticated on new functions
+-- through default privileges. REVOKE FROM PUBLIC alone is NOT sufficient.
+-- Explicitly remove role-level anon grants on every privileged helper/RPC.
+REVOKE ALL ON FUNCTION public.current_user_hosts_linkup(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.current_user_hosts_linkup(uuid) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.linkup_join_allowed(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.linkup_join_allowed(uuid) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.block_linkup_host(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.block_linkup_host(uuid) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.fetch_safe_linkups(timestamptz, integer, integer)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.fetch_safe_linkups(timestamptz, integer, integer)
+  TO anon, authenticated;
+
+-- Legacy moderation SECURITY DEFINER RPCs existed before this migration.
+-- Keep their intended signed-in callers working, but deny anonymous calls.
+REVOKE ALL ON FUNCTION public.is_platform_founder() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.is_platform_founder() TO authenticated;
+
+REVOKE ALL ON FUNCTION public.founder_remove_linkup(uuid, text)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.founder_remove_linkup(uuid, text) TO authenticated;
+
+REVOKE ALL ON FUNCTION public.founder_set_report_status(uuid, text)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.founder_set_report_status(uuid, text)
+  TO authenticated;
+
+REVOKE ALL ON FUNCTION public.submit_user_report(text, text, uuid, uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.submit_user_report(text, text, uuid, uuid)
+  TO authenticated;
+
+REVOKE ALL ON FUNCTION public.my_interaction_block_ids()
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.my_interaction_block_ids() TO authenticated;
+
+-- No direct client needs this legacy arbitrary-pair lookup. The new
+-- SECURITY DEFINER discovery RPC can call it internally as its owner;
+-- direct anonymous or authenticated EXECUTE would reveal block relationships.
+REVOKE ALL ON FUNCTION public.users_blocked_either_way(uuid, uuid)
+  FROM PUBLIC, anon, authenticated;
+
 COMMIT;
 
 -- SECURITY TESTS REQUIRED BEFORE APPROVAL:
