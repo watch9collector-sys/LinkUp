@@ -25,8 +25,9 @@ SELECTs.
      retrieve data; anon and signed-in NONPARTICIPANTS cannot retrieve exact
      street address, exact coordinates, description, attendee names/IDs or
      host full name through any API or realtime channel. Participant and host
-     have permitted details. Approximate map pins use 0.1-degree rounding;
-     assess whether this is appropriately private in small communities.
+     have permitted details. Nonparticipants receive NULL latitude and
+     longitude; no public map pins appear until a user joins the LinkUp.
+     Test that behavior for guests and signed-in nonparticipants.
    - Important residual risk: event TITLES are free-text and can themselves
      contain exact addresses. Add host safety guidance/moderation if needed.
    - RLS helpers must be audited for escalation, recursion and performance.
