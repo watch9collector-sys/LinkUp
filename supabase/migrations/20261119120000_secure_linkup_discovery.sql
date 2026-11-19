@@ -189,7 +189,7 @@ GRANT EXECUTE ON FUNCTION public.fetch_safe_linkups(timestamptz, integer, intege
 CREATE OR REPLACE FUNCTION public.block_linkup_host(p_linkup_id uuid)
 RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
-AS $
+AS $block_linkup_host$
 DECLARE
   v_blocker uuid := (SELECT auth.uid());
   v_host uuid;
@@ -209,7 +209,7 @@ BEGIN
   VALUES (v_blocker, v_host)
   ON CONFLICT (blocker_id, blocked_id) DO NOTHING;
 END;
-$;
+$block_linkup_host$;
 REVOKE ALL ON FUNCTION public.block_linkup_host(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.block_linkup_host(uuid) TO authenticated;
 
