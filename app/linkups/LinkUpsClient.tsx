@@ -6,6 +6,7 @@ import { GlassCard } from "../components/GlassCard";
 import { CreateLinkUpModal } from "../components/linkups/CreateLinkUpModal";
 import { EditLinkUpModal } from "../components/linkups/EditLinkUpModal";
 import { LinkUpCard } from "../components/linkups/LinkUpCard";
+import { HostedLinkUpHistory } from "../components/linkups/HostedLinkUpHistory";
 import { LinkUpDetailsModal } from "../components/linkups/LinkUpDetailsModal";
 import { PageHeader } from "../components/PageHeader";
 import { Button } from "../components/ui/Button";
@@ -177,6 +178,8 @@ export function LinkUpsClient() {
           </Button>
         </div>
       ) : null}
+
+      {user && ready ? <HostedLinkUpHistory userId={user.id} /> : null}
 
       {user ? (
         <CreateLinkUpModal
