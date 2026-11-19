@@ -140,6 +140,11 @@ export function useLinkUpsFeed() {
   const join = useCallback(
     async (linkupId: string) => {
       if (!user) return;
+      const event = items.find((item) => item.id === linkupId);
+      if (!event || Date.parse(event.starts_at) <= Date.now()) {
+        setError("This LinkUp is no longer available to join.");
+        return;
+      }
       setBusyId(linkupId);
       setError(null);
       try {
@@ -158,7 +163,7 @@ export function useLinkUpsFeed() {
         setBusyId(null);
       }
     },
-    [user, runFetch],
+    [user, items, runFetch],
   );
 
   const leave = useCallback(
