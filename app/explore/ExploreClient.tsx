@@ -43,7 +43,7 @@ export function ExploreClient() {
   >(null);
 
   const allMapPoints = items.map(linkUpMapPoint);
-  const mapPoints = allMapPoints.filter((point) => !point.approximate);
+  const mapPoints = allMapPoints.filter((point) => point.hasStoredCoordinates);
   const selectedLinkUp = items.find((item) => item.id === detailsId) ?? null;
 
   const signedIn = Boolean(user);
