@@ -1,0 +1,11 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.jwashburn.linkup",
+      "sha256_cert_fingerprints":
+        ["E9:94:38:24:17:83:70:72:1E:44:56:BD:28:A4:BC:99:03:BD:BC:9B:6A:05:79:A3:8E:FA:F9:B5:25:D9:1D:69"]
+    }
+  }
+]
