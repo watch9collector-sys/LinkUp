@@ -1,5 +1,5 @@
 # Nyvon — production security hardening rollout (REVIEW ONLY)
-**No production mutation authorized or performed · 2026-11-19**
+**Update 2026-11-19: narrow anonymous RPC revoke applied to production; broader changes remain review-only**
 
 ## Observed live risks (read-only audit)
 Supabase `linkup-prod` currently grants BOTH `anon` and `authenticated`
@@ -17,7 +17,7 @@ expose a direct TRUNCATE HTTP method. Do not mistake this audit for proof
 of an external exploit; the grants are still unnecessary and should be
 removed.
 
-Production's Supabase Security Advisor also shows six
+At initial audit, production's Supabase Security Advisor showed six
 `SECURITY DEFINER` RPC functions directly callable by `anon`:
 `founder_remove_linkup`, `founder_set_report_status`,
 `is_platform_founder`, `my_interaction_block_ids`,
@@ -88,3 +88,27 @@ Reference:
 - https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable
 - https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable
 - https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+
+## Production RPC hardening completed (2026-11-19)
+
+With the owner's request to resolve the six privileged functions, a separate
+production Supabase migration named
+`nyvon_restrict_anon_privileged_rpc_20261119` was applied to `linkup-prod`.
+It removed **only anonymous EXECUTE grants** for the six audited functions,
+without altering their definitions, `authenticated` grants, `service_role`
+grants, table DML, RLS, records, the website, or Play Console.
+
+Independent post-migration `has_function_privilege` checks confirmed anon=false,
+authenticated=true and service_role=true on all six functions. Supabase Security
+Advisor no longer reports anonymous SECURITY DEFINER functions. The six signed-in
+SECURITY DEFINER notices remain because some are intentionally used by the app;
+keep them for per-function authorization review rather than blindly revoking
+signed-in permissions and breaking reporting, blocking or moderation.
+
+**Still not performed:** the table-level TRUNCATE/TRIGGER/REFERENCES cleanup,
+the larger privacy RLS/RPC migration, the search-path trigger fix, production
+deletion automation, production website deployment, or Google Play publication.
+Old and new Android/client compatibility and real end-to-end tests remain pending.
+
+See `supabase/migrations/20261120050000_restrict_anon_privileged_rpc.sql`
+for the exact idempotent SQL represented by this operation.
