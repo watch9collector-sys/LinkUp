@@ -247,3 +247,44 @@ user-scoped writes under `avatars/<user_id>/` and
 `banners/<user_id>/`. No real storage-object deletion was executed
 or confirmed; the required staging Auth + Storage API end-to-end deletion
 test remains pending.
+
+
+## Vercel team access and branch-scoped isolated preview (2026-11-19)
+
+The owner granted Vercel team access and the project `nyvon`
+(`prj_uzHZuRbK74gaq340dkPgkiDIqt10`) was confirmed connected to
+`watch9collector-sys/LinkUp`, with `nyvon.app` and
+`www.nyvon.app` attached as live custom domains.
+
+**Important discovery:** the original two
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+Vercel variables targeted **both production and preview**. Those
+existing variables were NOT changed or deleted; their protected values
+were unavailable to inspection. Do not use any older preview for
+staging account or deletion tests.
+
+**Staging isolation prepared:** two distinct encrypted variable
+overrides of those exact names were added, restricted to
+`target=preview` and Git branch
+`review/nyvon-v1-5-launch-safeguards-20261119` only. The new values
+are the isolated Supabase project URL `kxwechptoaituppkmcjr` and its
+public anonymous client key; secrets/keys were not committed to GitHub.
+Production variable definitions and `main` remain untouched.
+
+A separate **preview** deployment was deliberately created from commit
+`eac12eee4aeafc4fce6e19d080fd3dc6d85d7b3f`:
+- Deployment id: `dpl_DqqBJHaCmw5pGCaND1dvWkN7UNWF`.
+- Hostname: `nyvon-ecikon8dh-watch9collector-5462s-projects.vercel.app`.
+- Vercel state: **READY**; target is Preview, not Production.
+- Vercel access protection is on; an unauthenticated request to the
+  preview returned `login_required`. This is not a frontend
+  functionality check.
+- **Outstanding validation:** the actual client bundle has NOT yet
+  been independently inspected to prove the staging Supabase ref was
+  embedded; the signed-in website and Auth/Realtime/Storage browser
+  testing have NOT run. Never claim the preview is confirmed
+  production-safe for write tests until runtime config and client access
+  are confirmed.
+
+No production Vercel deployment, custom domains, production env
+variables, production database, or Google Play releases were changed.
