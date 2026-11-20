@@ -56,9 +56,13 @@ export default function PrivacyPage() {
             We use Supabase for authentication, database and file storage,
             Vercel to host the website, and OpenStreetMap services for mapping
             and location lookup. A location search may be sent to an external
-            geocoding service to resolve an entered place. These providers may
-            process technical information as part of delivering those services.
-            Leaflet is the map display software used by the site.
+            geocoding service to resolve an entered place. We also use PostHog
+            for product-usage analytics. Depending on which features you use,
+            analytics may include an account identifier, activity type,
+            event identifier, page path, campaign attribution and timestamps.
+            These providers may process technical information as part of
+            delivering those services. Leaflet is the map display software
+            used by the site.
           </p>
         </section>
         <section>
