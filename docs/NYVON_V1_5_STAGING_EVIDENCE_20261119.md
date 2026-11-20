@@ -187,3 +187,36 @@ The source-only `scripts/qa/verify-staging-anon-http.mjs` test harness
 passed a CI syntax check, but the harness itself has not been executed.
 The five HTTPS checks above were performed directly by the connector,
 not by the test harness.
+
+
+## Approved staging deletion-rules rehearsal (2026-11-19)
+
+Owner authorization **for staging only**: delete hosted LinkUps with the
+account, aim for verified request completion within 30 calendar days, and
+retain only essential safety/fraud records under a separately defined
+retention policy. No final retention period has been approved.
+
+A rolled-back SQL transaction on an existing `.invalid` synthetic host
+verified the proposed explicit cleanup path:
+
+| Scoped database assertion | Result |
+|---|---|
+| Target `auth.users` row absent after cleanup | PASS |
+| Target host's upcoming and past LinkUps absent | PASS |
+| Target attendee memberships absent | PASS |
+| Account-linked support request (including email) absent | PASS |
+| Synthetic reports removed in no-retention-hold test | PASS |
+| Synthetic bilateral block records absent | PASS |
+| Other synthetic host's LinkUps unchanged | PASS |
+| Other synthetic host's Auth account intact | PASS |
+
+**No test records were permanently changed:** `ROLLBACK` restored
+four synthetic users, three LinkUps and four attendee records. The test
+proves SQL order/cascade effects only. Unverified: real Auth Admin API,
+storage object bytes, user authentication/verification, retries, session
+revocation, deletion confirmation, external processors/backups and a
+complete moderation-retention policy. It is not lawful evidence that a
+real account has been permanently deleted.
+
+The public Play Data safety account-deletion declaration must not be
+treated as verified by this SQL rehearsal alone.
