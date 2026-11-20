@@ -40,9 +40,9 @@ async function login(role){
  assert.ok(data.user?.id,"Signed-in staging user expected");
  return {c,id:data.user.id};
 }
-async function subscribe(client,label,eventId,onEvent){
+async function subscribe(client,label,eventId,onEvent,table="linkups",event="UPDATE"){
  const channel=client.channel("nyvon-qa-"+crypto.randomUUID())
-   .on("postgres_changes",{event:"UPDATE",schema:"public",table:"linkups",filter:"id=eq."+eventId},onEvent);
+   .on("postgres_changes",{event,schema:"public",table,filter:(table==="linkups"?"id=eq.":"linkup_id=eq.")+eventId},onEvent);
  const state=await Promise.race([
    new Promise(resolve=>channel.subscribe(s=>{
      if(["SUBSCRIBED","CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(s))resolve(s);
@@ -118,6 +118,37 @@ try{
    assert.ok(hCount>0,"Host did not receive Realtime update");
    assert.ok(mCount>0,"Joined member did not receive Realtime update");
    console.log("PASS Realtime host/member received event; guest and unrelated user received none");
+
+   // Separately check attendee identity events; those are replicated too.
+   let hostAttendeeEvents=0, outsiderAttendeeEvents=0, guestAttendeeEvents=0;
+   const attendanceChans=await Promise.all([
+     subscribe(host.c,"host-attendees",eventId,()=>hostAttendeeEvents++,"linkup_attendees","INSERT"),
+     subscribe(outsider.c,"outsider-attendees",eventId,()=>outsiderAttendeeEvents++,"linkup_attendees","INSERT"),
+     subscribe(guest,"guest-attendees",eventId,()=>guestAttendeeEvents++,"linkup_attendees","INSERT")
+   ]);
+   try {
+     for (const ch of attendanceChans) {
+       assert.equal(ch.state,"SUBSCRIBED",ch.label+" failed to subscribe: "+ch.state);
+     }
+     await sleeper(650);
+     const leaving=await member.c.from("linkup_attendees").delete()
+       .eq("linkup_id",eventId).eq("user_id",member.id);
+     assert.ifError(leaving.error);
+     const rejoining=await member.c.from("linkup_attendees").insert({
+       linkup_id:eventId,user_id:member.id,display_name:"Staging QA Member"
+     });
+     assert.ifError(rejoining.error);
+     await sleeper(4000);
+     assert.ok(hostAttendeeEvents>0,"Host must receive attendee membership event");
+     assert.equal(outsiderAttendeeEvents,0,"PRIVACY LEAK: outsider received attendee event");
+     assert.equal(guestAttendeeEvents,0,"PRIVACY LEAK: guest received attendee event");
+     console.log("PASS attendee Realtime: host received; guest/outsider received none");
+   } finally {
+     await Promise.allSettled(attendanceChans.map((x,i)=>
+       [host.c,outsider.c,guest][i].removeChannel(x.channel)
+     ));
+   }
+
  }finally{
    await Promise.allSettled(chans.map((x,i)=>clients[[1,0,2,3][i]].removeChannel(x.channel)));
  }
