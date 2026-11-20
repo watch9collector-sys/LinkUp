@@ -21,7 +21,7 @@ deployment. Never treat "full advancement" as final publishing authorization.
 | Public Play listing | `https://play.google.com/store/apps/details?id=com.jwashburn.linkup` returned 404 to public check | Not verified as public |
 | Isolated staging | Supabase `nyvon-v1-5-staging` `ACTIVE_HEALTHY`; synthetic data only | Created |
 | SQL privacy safeguards | Jaro 2 independent review + staging RLS/permissions regression checks | Passed SQL layer |
-| HTTP/real-JWT | No actual staging client request has been run in provided evidence | Pending |
+| HTTP anonymous | Five REAL staging REST calls over HTTPS: discovery 200, direct raw reads and privileged helper calls 401 | **Guest checks passed** |\n| HTTP/real-JWT | No real signed-in JWT tests completed | Pending |
 | Realtime WebSocket | Tables in publication, no guest/nonmember subscriber traffic tests | Pending |
 | Android bundle details | Android native source/AAB absent from connected GitHub repo | Need Console/AAB inspection |
 | Release pipeline | PR #4 unmerged; no production migration or deployment | Held intentionally |
@@ -114,6 +114,35 @@ deployment. Never treat "full advancement" as final publishing authorization.
 - Play App Signing: https://support.google.com/googleplay/android-developer/answer/9842756
 - Publishing overview: https://support.google.com/googleplay/android-developer/answer/9859348
 
-The first requested user artifact for Play-specific verification remains a
-**Publishing overview screenshot** (with any account/personal identifiers
-redacted by the owner if preferred). No action on that screen yet.
+## Subsequent Play Console screenshots supplied by owner
+
+- **Publishing overview:** Managed publishing ON; four changes ready to
+  publish, including `Nyvon V1.5 - Production`, US country availability,
+  privacy policy and Data safety. **Do not click Publish.**
+- **Production release page:** `Ready to publish`; version code **16**
+  (versionName **1.5**), target SDK **36**, device minimum API **24+**.
+  These values were read from the owner's Console screenshots; they do NOT
+  prove device runtime correctness.
+- **App signing:** Play App Signing shown as enabled; the owner identified
+  the supplied SHA-256 as the **app signing certificate** rather than upload
+  certificate. A fingerprint matching the live assetlinks entry was in
+  previously supplied notes; retain certificate verification in the release
+  checklist until independently copied directly from the Console.
+- **Trader status:** A blue "Declare your trader status" banner remains
+  visible; verify account status and business/region declaration before
+  submission. Never assume that a banner establishes the final account status.
+- **Next owner action:** Provide the Play Console current Data safety
+  declaration details and App content status, without saving/publishing,
+  and an actual Android install/smoke-test result.
+
+## Newly completed staging API checks
+
+Read `docs/NYVON_V1_5_STAGING_EVIDENCE_20261119.md` for HTTP status
+and payload results. Five anonymous network API tests passed and the
+temporary database HTTP extension was removed afterward. The existing
+synthetic data is unchanged. The **real signed-in JWT, Realtime, website
+preview, Android and account-deletion gates remain unverified**, therefore
+the app is still NO-GO for publication.
+
+No Play Console, production Supabase, production Vercel, or main-branch
+changes were made by this audit.
