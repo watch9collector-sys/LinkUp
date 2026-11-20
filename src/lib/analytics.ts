@@ -32,6 +32,8 @@ export function captureAnalytics(
   properties: AnalyticsProperties = {},
 ) {
   if (typeof window === "undefined" || !POSTHOG_TOKEN || !distinctId) return;
+  // Disposable accounts/events in isolated QA must not contaminate live analytics.
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL === "https://kxwechptoaituppkmcjr.supabase.co") return;
 
   const payload = {
     api_key: POSTHOG_TOKEN,
