@@ -157,3 +157,33 @@ remained. No data changes were committed. This is not an end-to-end test of
 real authentication, media bytes, verified identity, admin APIs or backups.
 The deletion SOP remains non-executable pending the complete staging flow;
 Google Play Data safety declarations have **not** been changed or verified.
+
+
+## Latest staged physical-device/browser and deletion evidence (2026-11-19)
+
+- Owner confirmed Google Play Internal Testing installation on an Android
+  phone, with displayed navigation and successful deletion **request** flow.
+  Internal versionCode itself was not independently checked on the device.
+- Browser staging Vercel preview was configured with two encrypted
+  branch-scoped Supabase variables and a separate Preview deployment.
+  The owner signed in to a fresh staging test account on iPhone and
+  created a test LinkUp. SQL independently verified that test LinkUp
+  exists in **staging**, demonstrating actual preview writes went to
+  isolated staging, not the production database.
+- Owner submitted `delete_account` request through that preview,
+  and staging SQL independently confirmed it was account-linked.
+- **With separate explicit owner approval**, only that disposable
+  account and its associated records were permanently deleted
+  from staging. An independent post-commit SQL query verified
+  zero target Auth, identities, sessions, LinkUps, attendance, and
+  support requests, while four other staging users, three unrelated
+  LinkUps and four attendee fixtures were preserved.
+- No uploaded avatar/banner objects existed for the deleted account,
+  so **actual media deletion remains untested**. Signed-in Realtime
+  WebSocket privacy, a fresh sign-in rejection test, full admin deletion
+  workflow, retry/notification/backup handling and detailed Data safety
+  declaration alignment also remain open.
+
+**Current decision: NO-GO for Google Play publication** until those
+remaining gates pass. Do not merge the review PR or modify live
+Supabase/Vercel and Play settings without separate owner authorization.
