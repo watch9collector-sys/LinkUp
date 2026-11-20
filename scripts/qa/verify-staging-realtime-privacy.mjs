@@ -79,12 +79,29 @@ try{
  console.log("PASS nonmember direct SQL/API table access denied");
  const guestRaw=await guest.from("linkups")
    .select("id,latitude,longitude,description").eq("id",eventId);
- assert.ifError(guestRaw.error);
- assert.deepEqual(guestRaw.data,[],"Guest must not read raw private event");
+ if (guestRaw.error) {
+   // Staging revokes SELECT entirely from anon. An explicit permission-denied
+   // response (42501) is correct and MUST count as privacy protection.
+   assert.equal(guestRaw.error.code,"42501",
+     "Unexpected guest raw table error: "+guestRaw.error.message);
+ } else {
+   assert.deepEqual(guestRaw.data,[],"Guest must not read raw private event");
+ }
+ console.log("PASS unauthenticated guest cannot read raw private event");
  const publicSafe=await outsider.c.rpc("fetch_safe_linkups",{
    p_as_of:new Date().toISOString(),p_limit:100,p_offset:0});
  assert.ifError(publicSafe.error);
  const redacted=publicSafe.data.find(x=>x.id===eventId);
+ const publicGuestSafe=await guest.rpc("fetch_safe_linkups",{
+   p_as_of:new Date().toISOString(),p_limit:100,p_offset:0});
+ assert.ifError(publicGuestSafe.error);
+ const guestDiscovery=publicGuestSafe.data.find(x=>x.id===eventId);
+ assert.ok(guestDiscovery,"Guest must discover public-safe event");
+ for(const field of ["host_id","longitude","latitude"])
+   assert.equal(guestDiscovery[field],null,"Guest discovery exposed "+field);
+ assert.equal(guestDiscovery.description,"","Guest discovery exposed description");
+ console.log("PASS unauthenticated guest sees only redacted discovery");
+
  assert.ok(redacted,"Event must appear through safe discovery");
  assert.equal(redacted.host_id,null);
  assert.equal(redacted.longitude,null);
