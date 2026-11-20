@@ -150,3 +150,40 @@ Remaining evidence gap: API/HTTP with real JWTs, Realtime WebSocket with
 real subscribers, staging-specific frontend deployment, Android smoke tests,
 and the full deletion process are still **NOT tested**. Schema/RLS simulation
 cannot substitute for these checks.
+
+
+## Live staging HTTPS REST verification — new evidence (2026-11-19)
+
+These requests traversed the actual Supabase API gateway and PostgREST over
+HTTPS, using **only the staging project's anonymous publishable access
+credential**. Requests were initiated from a temporary, permission-isolated
+staging PostgreSQL `http` extension. This is an actual network API test, not
+`SET ROLE` SQL simulation. No credentials were committed to GitHub.
+
+| Anonymous HTTPS request | Observed response | Gate |
+|---|---|---|
+| `GET /rest/v1/rpc/fetch_safe_linkups` | HTTP **200**, two synthetic upcoming events; sensitive fields redacted | PASS |
+| `GET /rest/v1/linkups?select=id&limit=1` | HTTP **401**, SQLSTATE `42501` permission denied | PASS |
+| `GET /rest/v1/linkup_attendees?select=id&limit=1` | HTTP **401**, SQLSTATE `42501` permission denied | PASS |
+| `GET /rest/v1/rpc/is_platform_founder` | HTTP **401**, SQLSTATE `42501` permission denied | PASS |
+| `GET /rest/v1/rpc/my_interaction_block_ids` | HTTP **401**, SQLSTATE `42501` permission denied | PASS |
+
+The discovery response revealed **no host UUID, raw latitude/longitude,
+private location, description or attendee identity** for the synthetic
+events; the historical fixture did not appear. The location was replaced
+with "Location shared with attendees" and attendee identities were `[]`.
+
+Cleanup verified: the temporary `http` extension and its
+`staging_http_qa` schema were both **removed**. Final counts remain:
+four .invalid test users, three LinkUps, four attendee records, zero reports,
+zero support requests. Production was not touched.
+
+**NOT TESTED / NOT PASSED:** real authenticated signup/JWT REST behavior
+(nonparticipant, member, host and founder); all write RPCs over HTTP;
+Realtime WebSockets; staging browser preview; Android app/device test;
+end-to-end permanent account deletion. Do not overstate coverage.
+
+The source-only `scripts/qa/verify-staging-anon-http.mjs` test harness
+passed a CI syntax check, but the harness itself has not been executed.
+The five HTTPS checks above were performed directly by the connector,
+not by the test harness.
