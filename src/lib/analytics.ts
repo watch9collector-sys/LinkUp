@@ -7,22 +7,17 @@ const POSTHOG_TOKEN = (
 ).trim();
 const POSTHOG_HOST = (
   process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com"
-)
-  .trim()
-  .replace(/\/$/, "");
+).trim().replace(/\/$/, "");
 
 function attribution() {
   if (typeof window === "undefined") return {};
   const params = new URLSearchParams(window.location.search);
+  // Do not transmit invite codes, personal identifiers or recovery tokens from URLs.
   return {
-    source: params.get("utm_source") ?? params.get("source") ?? undefined,
+    source: params.get("utm_source") ?? undefined,
     medium: params.get("utm_medium") ?? undefined,
     campaign: params.get("utm_campaign") ?? undefined,
     content: params.get("utm_content") ?? undefined,
-    community_id: params.get("community_id") ?? undefined,
-    host_id: params.get("host_id") ?? undefined,
-    pilot_id: params.get("pilot_id") ?? undefined,
-    invite_code: params.get("invite_code") ?? undefined,
   };
 }
 
@@ -32,13 +27,14 @@ export function captureAnalytics(
   properties: AnalyticsProperties = {},
 ) {
   if (typeof window === "undefined" || !POSTHOG_TOKEN || !distinctId) return;
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL === "https://kxwechptoaituppkmcjr.supabase.co") return;
 
   const payload = {
     api_key: POSTHOG_TOKEN,
     distinct_id: distinctId,
     event,
     properties: {
-      $current_url: window.location.href,
+      $current_url: `${window.location.origin}${window.location.pathname}`,
       $pathname: window.location.pathname,
       ...attribution(),
       ...properties,
