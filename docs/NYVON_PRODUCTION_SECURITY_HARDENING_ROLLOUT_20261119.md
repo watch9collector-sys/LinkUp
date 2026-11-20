@@ -44,8 +44,8 @@ also has leaked password protection disabled.
 3. `supabase/migrations/20261119140000_strip_unsafe_client_table_privileges.sql`
    revoked `TRUNCATE`, `TRIGGER`, and `REFERENCES` for browser
    roles on all five public tables named above.
-   Verification proved ALL fifteen role/table combinations deny these
-   capabilities. Transactionally rolled-back RLS inserts still
+   Verification proved all five tables deny these three
+   capabilities to both ordinary app roles. Transactionally rolled-back RLS inserts still
    succeeded for anonymous support contact and an authenticated hosted
    LinkUp, including the updated timestamp trigger. Original staging
    accounts and LinkUps preserved.
