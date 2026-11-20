@@ -22,7 +22,7 @@ function attribution() {
     community_id: params.get("community_id") ?? undefined,
     host_id: params.get("host_id") ?? undefined,
     pilot_id: params.get("pilot_id") ?? undefined,
-    invite_code: params.get("invite_code") ?? undefined,
+    // Invite codes are bearer-like access artifacts. Do not forward them to analytics.
   };
 }
 
@@ -38,7 +38,9 @@ export function captureAnalytics(
     distinct_id: distinctId,
     event,
     properties: {
-      $current_url: window.location.href,
+      // Full URLs may contain password-recovery tokens, invite codes, or PII.
+      // Keep only origin + pathname; never send query strings or fragments.
+      $current_url: `${window.location.origin}${window.location.pathname}`,
       $pathname: window.location.pathname,
       ...attribution(),
       ...properties,
