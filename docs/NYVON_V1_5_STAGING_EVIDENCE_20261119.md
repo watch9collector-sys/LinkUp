@@ -220,3 +220,30 @@ real account has been permanently deleted.
 
 The public Play Data safety account-deletion declaration must not be
 treated as verified by this SQL rehearsal alone.
+
+
+## Staging Realtime publication and storage policy inspection (2026-11-19)
+
+Read-only inspection of `pg_publication_tables` showed that staging
+`supabase_realtime` publishes **only** `public.linkups` and
+`public.linkup_attendees`. Both publications include raw columns
+(`linkups.host_id`, exact `location`, `latitude`, `longitude`,
+`description`, and `linkup_attendees.user_id`). Therefore, maintaining
+per-record access rules is mandatory. The existence of these fields in the
+publication **does not by itself prove a privacy leak**: Realtime Postgres
+Changes must be tested under real subscriber JWTs to confirm RLS
+enforcement and client behavior.
+
+`public.support_requests` is **not** in `supabase_realtime`, which
+reduces one broadcast exposure surface. `pg_policies` inspection also
+showed no client SELECT policy for support requests; authenticated
+participants/hosts have row-scoped SELECT policies for LinkUps and
+attendee rows. This is a **static configuration check only**. Do not claim
+a WebSocket stream passed until a real anonymous/nonparticipant/member/
+host test has shown the correct subscription event visibility.
+
+The `profile-images` storage object policy permits public reads and
+user-scoped writes under `avatars/<user_id>/` and
+`banners/<user_id>/`. No real storage-object deletion was executed
+or confirmed; the required staging Auth + Storage API end-to-end deletion
+test remains pending.
