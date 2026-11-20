@@ -242,3 +242,19 @@ security grants remain broader than intended.
 
 No production Supabase, live web, Google Play Console, GitHub main
 branch, or real user account changes were made by this review.
+
+## Read-only Google Play Console browser audit — 2026-11-19 local
+The signed-in owner account's Console was inspected without making changes.
+**No Save, Publish, upload or production rollout was performed.**
+
+- Nyvon `com.jwashburn.linkup`: queued Production release **versionName 1.5, versionCode 16, target SDK 36**, marked **Ready to publish**. Managed publishing remains ON. Four changes queued: rollout, US region, privacy URL and Data safety. Not yet publicly published.
+- Last published date shown: August 14, 2026. The Release is queued, not proof of deployed Android 1.5 functionality.
+- **Data safety** shown as completed under App content Actioned, but *individual data-type/purpose/sharing answers were not visible*. This remains a release blocker until reconciled against precise locations, public photos, PostHog, maps, requests and actual deletion.
+- Account deletion URL `https://nyvon.app/delete-account` and privacy URL `https://nyvon.app/privacy` are entered. The latter still serves the outdated live policy. A narrow privacy/analytics hotfix is proposed in draft PR #5, NOT merged or published.
+- **Policy issue still displayed:** `App must target Android 16 (API level 36) or higher` (Error). It may refer to the previously published version, while queued v16 reports API 36. Do not mark this error cleared without Console confirming.
+- **Trader-status declaration:** action required, banner displays February 2027 deadline.
+- **Store metadata still outdated:** contact email `linkupsprt@gmail.com`, website `https://link-up-394f01b7.base44.app/home`. Plan a separate verified metadata update to Nyvon owner details; do not press Save and publish until approved.
+- Play App Signing SHA-256 not independently read during this audit. Public `/.well-known/assetlinks.json` serves one certificate fingerprint, but matching against the *actual Play app signing certificate* remains a specific check.
+- Additional warnings: R8/AGP recommendation and memory page-size compatibility warning. Review Android runtime/device support, particularly 16 KB pages, before final publication.
+
+**Decision:** no public Play publication until production privacy/deletion capability, staging media/Realtime tests, Android regression, Data safety answers and the policy error have been reconciled. Changes stay pending under managed publishing.
