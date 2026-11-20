@@ -288,3 +288,56 @@ A separate **preview** deployment was deliberately created from commit
 
 No production Vercel deployment, custom domains, production env
 variables, production database, or Google Play releases were changed.
+
+
+## Real staging account deletion execution — PASS, with defined remaining gaps
+
+The owner gave **explicit approval** to permanently delete the particular
+disposable staging account after successfully submitting its request from
+the authenticated staging Vercel preview. The submitted deletion request was
+independently verified in staging as account-linked and email-verified.
+
+**Preflight scope:** exactly one disposable Auth user, one hosted LinkUp,
+one self-attendance record (the only attendance on the hosted LinkUp), one
+support request, and **zero** profile-image objects, user reports, blocks,
+moderation-audit records, or founder assignments. Staging held five Auth
+accounts and four LinkUps total.
+
+A single transactional **staging-only** SQL cleanup checked exact test
+account ID, email, deletion request, media absence, affected-row counts and
+total-fixture counts before making changes. It explicitly removed the
+account-linked support request (to prevent email PII surviving `SET NULL`)
+then deleted the verified Auth user, allowing the existing foreign-key
+cascades to remove their hosted LinkUp, attendee record, identity and
+sessions. Assertions ran before `COMMIT`; any exception would have
+rolled back the full transaction.
+
+**Independent post-commit database query confirmed:**
+
+| Item | Remaining records |
+|---|---:|
+| Target Auth user | 0 |
+| Target Auth identities | 0 |
+| Target Auth sessions | 0 |
+| Target hosted LinkUps | 0 |
+| Target attendee rows | 0 |
+| Target support requests (including matching email) | 0 |
+| Target profile image objects | 0 (none existed before cleanup) |
+| Other staging synthetic users | 4, unchanged |
+| Other LinkUps | 3, unchanged |
+| Remaining attendance fixtures | 4, unchanged |
+
+No live production operations, Play publication, merges, or live-domain
+changes occurred. This **proves persistent removal of this one human-created
+staging account and relational data**. It does **not** prove uploaded
+Storage object byte removal (no uploaded objects existed), Auth Admin
+API behavior (SQL deletion was used), old JWT expiration/revocation in
+the browser, emailed requester confirmation, external processor/backups
+cleanup, or complete moderation-retention policy. The owner should still
+attempt password sign-in from a **fresh session** and confirm failure.
+
+This is a staging-only accomplishment, **not** authorization to deploy a
+production deletion flow or declare full Google Play account-deletion
+compliance. Retest the production-capable deletion workflow with a
+synthetic uploaded avatar, a partially failing cleanup, and complete
+operator audit before launch.
