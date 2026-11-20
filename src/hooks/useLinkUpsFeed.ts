@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "@/src/lib/supabase";
 import {
   deleteLinkUpAsHost,
   fetchLinkUps,
@@ -17,7 +16,9 @@ import { fetchBlockedEitherWayIds } from "@/src/lib/moderationApi";
 import { getDisplayName } from "@/src/lib/userDisplay";
 import { captureAnalytics } from "@/src/lib/analytics";
 
-const REALTIME_REFETCH_DEBOUNCE_MS = 350;
+// Private table changes are not broadcast: signed-in and guest clients
+// refresh via the access-controlled fetch_safe_linkups API instead.
+const FEED_POLL_INTERVAL_MS = 30_000;
 
 export function useLinkUpsFeed() {
   const { user, ready } = useAuthSession();
@@ -29,7 +30,6 @@ export function useLinkUpsFeed() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const fetchGenerationRef = useRef(0);
-  const debounceTimerRef = useRef<number | null>(null);
 
   const prepareRows = useCallback(
     async (rows: LinkUpRow[]) => {
@@ -89,16 +89,6 @@ export function useLinkUpsFeed() {
     [prepareRows],
   );
 
-  const scheduleRealtimeRefetch = useCallback(() => {
-    if (debounceTimerRef.current !== null) {
-      window.clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = window.setTimeout(() => {
-      debounceTimerRef.current = null;
-      void runFetch(false);
-    }, REALTIME_REFETCH_DEBOUNCE_MS);
-  }, [runFetch]);
-
   useEffect(() => {
     if (!ready) return;
     const id = window.setTimeout(() => {
@@ -109,33 +99,23 @@ export function useLinkUpsFeed() {
 
   useEffect(() => {
     if (!ready) return;
-    const channel = supabase
-      .channel("linkups-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "linkups" },
-        () => {
-          scheduleRealtimeRefetch();
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "linkup_attendees" },
-        () => {
-          scheduleRealtimeRefetch();
-        },
-      )
-      .subscribe();
-
-    return () => {
-      if (debounceTimerRef.current !== null) {
-        window.clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void runFetch(false);
       }
-      fetchGenerationRef.current += 1;
-      void supabase.removeChannel(channel);
     };
-  }, [ready, scheduleRealtimeRefetch]);
+    // Low-frequency refresh retains LinkUp updates without exposing private
+    // database changes over unauthenticated Realtime channels.
+    const interval = window.setInterval(refreshWhenVisible, FEED_POLL_INTERVAL_MS);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("focus", refreshWhenVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("focus", refreshWhenVisible);
+      fetchGenerationRef.current += 1;
+    };
+  }, [ready, runFetch]);
 
   const join = useCallback(
     async (linkupId: string) => {
