@@ -187,3 +187,58 @@ Google Play Data safety declarations have **not** been changed or verified.
 **Current decision: NO-GO for Google Play publication** until those
 remaining gates pass. Do not merge the review PR or modify live
 Supabase/Vercel and Play settings without separate owner authorization.
+
+
+## Latest security hardening and Google Play Data safety audit (2026-11-19)
+
+**Read-only PRODUCTION check:** `linkup-prod` still grants
+`TRUNCATE` and `TRIGGER` on LinkUps, attendees and support
+requests to both normal app roles. The `authenticated` role also
+has these powers on blocks and reports. RLS does not restrict
+`TRUNCATE`. These privileges do not establish an exploitable HTTP
+route by themselves, but they are unnecessary. Six SECURITY DEFINER
+RPCs also have direct anon EXECUTE grants according to Supabase's
+security advisor. **No production permissions changed**.
+
+**STAGING fixes implemented, data preserved:**
+- `20261119130000_fix_linkups_updated_at_search_path.sql` fixes the
+  timestamp trigger's mutable `search_path`; the advisor warning
+  disappeared from staging.
+- `20261119140000_strip_unsafe_client_table_privileges.sql`
+  revokes TRUNCATE/TRIGGER/REFERENCES from anon and authenticated
+  on five Nyvon app-data tables. PostgreSQL privilege queries confirm
+  all three are now denied; rolled-back tests still successfully
+  inserted guest contact requests and host-created LinkUps.
+- Other staged privacy/RLS protections from the previous migration
+  remain in place. The temporary test database has exactly four
+  original synthetic users, three synthetic LinkUps, four attendee
+  fixtures, zero profile-image files and zero support requests.
+
+**Review-branch code/doc prep:**
+- `src/lib/analytics.ts` no longer forwards entire URLs or
+  `invite_code` to PostHog. Isolated staging analytics are disabled
+  to avoid polluting live telemetry. Not deployed to production.
+- The draft `app/privacy/page.tsx` discloses PostHog analytics;
+  the currently live `nyvon.app/privacy` is an older, shorter document.
+- New real-media and Realtime QA test scripts were created and
+  syntax-checked by CI; **not yet run with signed-in staging users**.
+- `docs/NYVON_PLAY_DATA_SAFETY_RECONCILIATION_20261119.md`
+  maps code data flows against unverified Console answers.
+- `docs/NYVON_PRODUCTION_SECURITY_HARDENING_ROLLOUT_20261119.md`
+  identifies a minimal permissions-only first deployment and a later
+  coordinated web/RLS cutover; both require explicit approval.
+
+**Verified public URLs:** `https://nyvon.app/delete-account` and
+`https://nyvon.app/privacy` load; `/.well-known/assetlinks.json`
+associates `com.jwashburn.linkup` with the previously provided
+certificate fingerprint. Google Play policy requires API 36 for
+new normal apps/updates as of August 31, 2026; the owner's V1.5
+Console screenshot showed target SDK 36 and versionCode 16.
+
+**Still NO-GO:** no real uploaded media byte deletion test; no signed-in
+WebSocket privacy trace; no production-capable deletion/retention
+workflow or complete Play Console Data safety review. Production
+security grants remain broader than intended.
+
+No production Supabase, live web, Google Play Console, GitHub main
+branch, or real user account changes were made by this review.
