@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * NYVON STAGING-ONLY signed-in RLS + Realtime WebSocket test.
+ * Private raw Realtime publication is intentionally disabled as a privacy safeguard.
  * Uses three separate disposable, confirmed staging accounts:
  * host, member, outsider, plus an unauthenticated guest client. Creates then deletes exactly one synthetic event.
  * No production credentials, service role, auth-user deletion, or real data.
@@ -116,7 +117,17 @@ try{
  assert.ifError(memberRaw.error);
  assert.equal(memberRaw.data.longitude,-103.091);
  console.log("PASS joined member can access private event");
- let hCount=0,mCount=0,oCount=0,gCount=0;
+ let hCount=0,mCount=0,oCount=0,gCount=0,guestAllCount=0;
+ const guestAll = guest.channel("nyvon-qa-guest-raw-"+crypto.randomUUID())
+   .on("postgres_changes",{event:"*",schema:"public",table:"linkups"},()=>guestAllCount++)
+   .on("postgres_changes",{event:"*",schema:"public",table:"linkup_attendees"},()=>guestAllCount++);
+ const guestAllState = await Promise.race([
+   new Promise(resolve=>guestAll.subscribe(state=>{
+     if(["SUBSCRIBED","CHANNEL_ERROR","TIMED_OUT","CLOSED"].includes(state))resolve(state);
+   })),
+   sleeper(12000).then(()=>"timeout")
+ ]);
+ assert.equal(guestAllState,"SUBSCRIBED","Guest broad raw-changes subscription probe failed");
  const chans=await Promise.all([
    subscribe(host.c,"host",eventId,()=>hCount++),
    subscribe(member.c,"member",eventId,()=>mCount++),
@@ -130,11 +141,11 @@ try{
      .update({description:"QA update "+crypto.randomUUID()}).eq("id",eventId);
    assert.ifError(updated.error);
    await sleeper(4000);
-   assert.equal(oCount,0,"PRIVACY LEAK: nonmember received private event update");
-   assert.equal(gCount,0,"PRIVACY LEAK: guest received private event update");
-   assert.ok(hCount>0,"Host did not receive Realtime update");
-   assert.ok(mCount>0,"Joined member did not receive Realtime update");
-   console.log("PASS Realtime host/member received event; guest and unrelated user received none");
+   for(const [label,count] of [["host",hCount],["member",mCount],
+     ["outsider",oCount],["guest",gCount],["guest-global",guestAllCount]]) {
+     assert.equal(count,0,"PRIVACY LEAK: "+label+" received unapproved raw LinkUp/attendee change");
+   }
+   console.log("PASS raw Realtime replication disabled; safe API refresh is used");
 
    // Separately check attendee identity events; those are replicated too.
    let hostAttendeeEvents=0, outsiderAttendeeEvents=0, guestAttendeeEvents=0;
@@ -156,10 +167,11 @@ try{
      });
      assert.ifError(rejoining.error);
      await sleeper(4000);
-     assert.ok(hostAttendeeEvents>0,"Host must receive attendee membership event");
+     assert.equal(hostAttendeeEvents,0,"Raw attendee events must be disabled even for host");
      assert.equal(outsiderAttendeeEvents,0,"PRIVACY LEAK: outsider received attendee event");
      assert.equal(guestAttendeeEvents,0,"PRIVACY LEAK: guest received attendee event");
-     console.log("PASS attendee Realtime: host received; guest/outsider received none");
+     assert.equal(guestAllCount,0,"PRIVACY LEAK: guest received raw change from protected tables");
+     console.log("PASS no raw attendee Realtime events for any role");
    } finally {
      await Promise.allSettled(attendanceChans.map((x,i)=>
        [host.c,outsider.c,guest][i].removeChannel(x.channel)
@@ -168,6 +180,7 @@ try{
 
  }finally{
    await Promise.allSettled(chans.map((x,i)=>clients[[1,0,2,3][i]].removeChannel(x.channel)));
+   await guest.removeChannel(guestAll);
  }
 }catch(e){
  console.error("FAILED staging signed-in/Reatime QA:",e?.message||"unknown test error");
