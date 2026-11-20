@@ -135,3 +135,29 @@ Complete the mandatory end-to-end tests above in a staging-only service
 session, including real photo upload/removal, unverified request denial,
 partial-failure retry, actual Auth Admin API deletion and proof of
 client/session revocation before changing a public/legal declaration.
+
+
+## One real staging-user deletion completed after owner approval (2026-11-19)
+
+A user-created **disposable** staging account signed in on the review-branch
+Vercel preview, hosted a single test LinkUp, and submitted a verified
+`delete_account` support request. The owner specifically authorized
+the irreversible removal of *that* staging test account and associated
+records, while preserving every other account and production.
+
+The isolated staging database transaction prechecked the account identity,
+verification request, linked rows, absent media and expected fixture
+totals, removed the account-linked support request including its PII,
+then removed the Auth user. Existing FK cascades removed the user's
+hosted LinkUp, attendance, identities and sessions. A post-commit
+independent SELECT confirmed all target records absent and the other
+four users, three LinkUps and four attendance fixtures unchanged.
+The operation **COMMITTED**. This was not another rollback rehearsal.
+
+**Remaining go-live gates:** fresh-session login rejection, Storage API
+physical bytes deletion for a separate account that actually uploaded
+avatar/banner objects, full admin-side workflow and partial-failure
+retries, moderation retention and independent backups/processor rules,
+and user request completion notification. This direct SQL test is
+evidence, not the production deletion implementation. Production and
+Google Play stayed unchanged.
