@@ -72,10 +72,11 @@ deployment. Never treat "full advancement" as final publishing authorization.
 - Existing app takes a manual deletion request; deletion itself is not
   demonstrably completed. The staging proof also confirmed a support
   request's email survives simply deleting its Auth user.
-- Owner must decide: hosted LinkUps on deletion (delete or anonymize),
-  an achievable request completion target (30 days was proposed, not
-  approved), and narrowly defined moderation/fraud retention categories
-  and periods. Legal review may be needed.
+- Owner approved **staging-only testing** for deleting departing hosts'
+  LinkUps and aiming to complete verified requests within **30 calendar days**.
+  Retention is limited in principle to necessary moderation/fraud records,
+  but **exact categories, time periods and lawful reasons remain unapproved**.
+  These are NOT production or published policy approvals.
 - Complete identity verification, secure admin procedure, all data/storage
   cleanup and user notification in the draft SOP; execute it with an
   independent disposable staging account (including photos, hosted events,
@@ -146,3 +147,13 @@ the app is still NO-GO for publication.
 
 No Play Console, production Supabase, production Vercel, or main-branch
 changes were made by this audit.
+
+## Staging-only deletion rehearsal follow-up
+
+A rollback SQL test on the synthetic host account passed 8 cleanup and
+non-target-isolation assertions: Auth user, hosted events, attendance, blocks,
+reports and support requests removed, while the unrelated host and events
+remained. No data changes were committed. This is not an end-to-end test of
+real authentication, media bytes, verified identity, admin APIs or backups.
+The deletion SOP remains non-executable pending the complete staging flow;
+Google Play Data safety declarations have **not** been changed or verified.
