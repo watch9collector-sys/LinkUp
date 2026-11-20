@@ -14,11 +14,11 @@
 Actual staging signup confirmation emails from `noreply@mail.app.supabase.io` arrive in the owner's connected Gmail inbox. Their `/auth/v1/verify` URLs are on the correct staging project but contain `redirect_to=http://localhost:3000`.
 This indicates fallback to the staging project's default Site URL / redirect allowlist configuration. Fix in **STAGING Supabase**, not in production:
 1. Open **https://supabase.com/dashboard/project/kxwechptoaituppkmcjr/auth/url-configuration**
-2. Set the staging **Site URL** to the currently selected protected review preview, for example:
-   `https://nyvon-m5x2jpe34-watch9collector-5462s-projects.vercel.app`
-3. Under **Redirect URLs**, add that exact origin plus `/**`:
-   `https://nyvon-m5x2jpe34-watch9collector-5462s-projects.vercel.app/**`
-   To support subsequent review commits, a branch- or deployment-family scoped Vercel preview wildcard may also be needed, e.g. `https://nyvon-*-watch9collector-5462s-projects.vercel.app/**`, and should be reviewed for appropriate scope before saving. Do not allow the production domain to point at the staging project.
+2. Set the staging **Site URL** to the Vercel **stable branch preview alias** (independently verified through Vercel deployment aliases and HTTP 200):
+   `https://nyvon-git-review-nyvon-v1-8d04de-watch9collector-5462s-projects.vercel.app`
+3. Under **Redirect URLs**, add the exact branch alias with path wildcard:
+   `https://nyvon-git-review-nyvon-v1-8d04de-watch9collector-5462s-projects.vercel.app/**`
+   Open the **branch alias**, not a build-specific deployment URL, for signup and password recovery. This avoids granting wildcard trust to all team previews. Do not allow the production domain to point at the staging project.
 4. Save, return to that **protected staging preview**, request a fresh confirmation (or new staging signup) and inspect that the newest email's redirect points back to the current preview, **not localhost**. Confirmation links are one-use.
 5. Create or reset a known disposable password without sharing any credentials in chat, sign in from a new session, and verify Supabase `email_confirmed_at` and `last_sign_in_at`.
 Important: clicking an older link may complete verification but still redirect to localhost. Do not count this as an end-to-end successful flow. Don't disable email confirmation.
