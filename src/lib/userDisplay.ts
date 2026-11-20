@@ -7,8 +7,9 @@ export function getDisplayName(user: User | null): string {
   const display = meta?.display_name;
   if (typeof full === "string" && full.trim()) return full.trim();
   if (typeof display === "string" && display.trim()) return display.trim();
-  if (user.email) return user.email.split("@")[0] ?? "there";
-  return "there";
+  // Never infer a public profile name from the account email address.
+  // Unnamed signed-in users use a neutral label until they choose a name.
+  return "Member";
 }
 
 export function getInitials(user: User | null): string {
