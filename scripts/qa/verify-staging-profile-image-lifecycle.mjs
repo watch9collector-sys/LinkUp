@@ -47,30 +47,36 @@ const run = async () => {
   assert.ifError(loginError);
   assert.ok(login.user?.id, "Confirmed disposable staging account required");
   const id = login.user.id;
-  const path = "avatars/" + id + "/qa-" + crypto.randomUUID() + ".png";
-  let wasUploaded = false;
+  // Test both user-owned media directories. Do not touch any existing object.
+  const paths = ["avatars","banners"].map(prefix =>
+    prefix + "/" + id + "/qa-" + crypto.randomUUID() + ".png"
+  );
+  const uploaded = new Set();
   let completed = false;
   try {
-    const up = await client.storage.from("profile-images")
-      .upload(path, png, {contentType:"image/png",cacheControl:"0",upsert:false});
-    assert.ifError(up.error);
-    wasUploaded = true;
-    console.log("PASS signed-in staging upload");
-    const got = await client.storage.from("profile-images").download(path);
-    assert.ifError(got.error);
-    assert.ok((await got.data.arrayBuffer()).byteLength > 0);
-    console.log("PASS staging download");
-    const removed = await client.storage.from("profile-images").remove([path]);
-    assert.ifError(removed.error);
-    wasUploaded = false;
-    const after = await client.storage.from("profile-images").download(path);
-    assert.ok(after.error, "Expected removed object to be unavailable");
-    console.log("PASS staging photo deletion and readback rejection");
+    for (const path of paths) {
+      const up = await client.storage.from("profile-images")
+        .upload(path, png, {contentType:"image/png",cacheControl:"0",upsert:false});
+      assert.ifError(up.error);
+      uploaded.add(path);
+      const got = await client.storage.from("profile-images").download(path);
+      assert.ifError(got.error);
+      assert.ok((await got.data.arrayBuffer()).byteLength > 0);
+      console.log("PASS staging upload and download:", path.startsWith("avatars/") ? "avatar" : "banner");
+    }
+    for (const path of paths) {
+      const removed = await client.storage.from("profile-images").remove([path]);
+      assert.ifError(removed.error);
+      uploaded.delete(path);
+      const after = await client.storage.from("profile-images").download(path);
+      assert.ok(after.error, "Expected removed object to be inaccessible");
+      console.log("PASS staging object removal and readback denial:", path.startsWith("avatars/") ? "avatar" : "banner");
+    }
     completed = true;
   } finally {
-    if (wasUploaded) {
+    for (const path of uploaded) {
       const cleanup = await client.storage.from("profile-images").remove([path]);
-      if (cleanup.error) console.error("CLEANUP REQUIRED: disposable photo not removed.");
+      if (cleanup.error) console.error("CLEANUP REQUIRED: synthetic uploaded photo remains");
     }
     await client.auth.signOut();
   }
