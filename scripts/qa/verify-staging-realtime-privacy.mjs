@@ -2,7 +2,7 @@
 /**
  * NYVON STAGING-ONLY signed-in RLS + Realtime WebSocket test.
  * Uses three separate disposable, confirmed staging accounts:
- * host, member, outsider. Creates then deletes exactly one synthetic event.
+ * host, member, outsider, plus an unauthenticated guest client. Creates then deletes exactly one synthetic event.
  * No production credentials, service role, auth-user deletion, or real data.
  *
  * NYVON_STAGING_SUPABASE_URL=https://kxwechptoaituppkmcjr.supabase.co
@@ -56,6 +56,10 @@ try{
  const member=await login("MEMBER");
  host=await login("HOST");
  const outsider=await login("OUTSIDER");
+ const guest=createClient(base.toString(),key,{
+   auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+ });
+ clients.push(guest);
  assert.equal(new Set([host.id,member.id,outsider.id]).size,3,"Separate accounts required");
  const title="NYVON STAGING QA "+crypto.randomUUID();
  const {data:event,error:creating}=await host.c.from("linkups")
@@ -73,6 +77,10 @@ try{
  assert.ifError(outsiderRaw.error);
  assert.deepEqual(outsiderRaw.data,[],"Unjoined users must not access raw private event");
  console.log("PASS nonmember direct SQL/API table access denied");
+ const guestRaw=await guest.from("linkups")
+   .select("id,latitude,longitude,description").eq("id",eventId);
+ assert.ifError(guestRaw.error);
+ assert.deepEqual(guestRaw.data,[],"Guest must not read raw private event");
  const publicSafe=await outsider.c.rpc("fetch_safe_linkups",{
    p_as_of:new Date().toISOString(),p_limit:100,p_offset:0});
  assert.ifError(publicSafe.error);
@@ -91,11 +99,12 @@ try{
  assert.ifError(memberRaw.error);
  assert.equal(memberRaw.data.longitude,-103.091);
  console.log("PASS joined member can access private event");
- let hCount=0,mCount=0,oCount=0;
+ let hCount=0,mCount=0,oCount=0,gCount=0;
  const chans=await Promise.all([
    subscribe(host.c,"host",eventId,()=>hCount++),
    subscribe(member.c,"member",eventId,()=>mCount++),
    subscribe(outsider.c,"outsider",eventId,()=>oCount++),
+   subscribe(guest,"guest",eventId,()=>gCount++),
  ]);
  try{
    for(const ch of chans)assert.equal(ch.state,"SUBSCRIBED",ch.label+" failed to subscribe: "+ch.state);
@@ -105,11 +114,12 @@ try{
    assert.ifError(updated.error);
    await sleeper(4000);
    assert.equal(oCount,0,"PRIVACY LEAK: nonmember received private event update");
+   assert.equal(gCount,0,"PRIVACY LEAK: guest received private event update");
    assert.ok(hCount>0,"Host did not receive Realtime update");
    assert.ok(mCount>0,"Joined member did not receive Realtime update");
-   console.log("PASS Realtime host/member received event; unrelated user received none");
+   console.log("PASS Realtime host/member received event; guest and unrelated user received none");
  }finally{
-   await Promise.allSettled(chans.map((x,i)=>clients[[1,0,2][i]].removeChannel(x.channel)));
+   await Promise.allSettled(chans.map((x,i)=>clients[[1,0,2,3][i]].removeChannel(x.channel)));
  }
 }catch(e){
  console.error("FAILED staging signed-in/Reatime QA:",e?.message||"unknown test error");
