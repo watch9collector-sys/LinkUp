@@ -1,3 +1,9 @@
+> **CURRENT VERIFIED ADDENDUM — NOVEMBER 20, 2026**
+> **NO-GO FOR PUBLIC LAUNCH.** This historical November 19 report has now been superseded for specific QA results by [the critical Realtime security incident and release gate](./NYVON_REALTIME_PRIVACY_INCIDENT_AND_RELEASE_GATE_20261120.md).
+> Since this report was originally written, all three staging test accounts were confirmed and signed in, actual avatar/banner upload and deletion were verified, an Outsider joined and left a test LinkUp, and a new-name privacy fallback was committed.
+> A REAL unauthenticated staging WebSocket listener subsequently received one private LinkUp UPDATE and one attendee INSERT event despite the HTTP privacy checks passing. Staging removed both private tables from `supabase_realtime`, then an independent guest retest saw **zero** raw events. The staging frontend now refreshes through safe RPC polling every 30 seconds while visible. Staging build/lint and guest HTTP tests passed.
+> A read-only production inspection separately found `linkups`, `linkup_attendees` and `support_requests` in raw Realtime publication, and public SELECT policies and grants for the first two tables. NO live records, permissions or Play Console settings were modified. Do not apply staging RLS to old clients blindly; coordinate an approved production privacy cutover. Realtime, deletion-with-media, Android and Play gates remain blocking.
+
 # Nyvon V1.5 — Public launch readiness decision
 **Review-only assessment · November 19, 2026 America/Denver / November 20 UTC**
 **Current verdict: NO-GO. Do not publish queued Play changes.**
