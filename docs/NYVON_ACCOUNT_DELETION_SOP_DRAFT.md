@@ -4,6 +4,28 @@
 > new UI or live backend functionality were executed.**
 > This is an operational design, not proof of implementation or legal advice.
 
+## Owner decisions — approved for isolated staging testing only (2026-11-19)
+
+- **Hosted LinkUps:** Delete LinkUps hosted by the departing account rather
+  than transferring ownership or anonymizing their host. The deletion
+  cascades to attendance on those LinkUps, including other attendees'
+  memberships. In the user-facing flow, clearly disclose that hosted LinkUps
+  and associated participation records will disappear.
+- **Processing target:** Work toward completing a **verified** deletion
+  request within **30 calendar days** in staging test design. This is a
+  proposed operating target, not a published/legal guarantee until final
+  owner/legal review and proven implementation. Track request received,
+  identity verified, cleanup started, cleanup completed, confirmation sent.
+- **Safety/fraud records:** Retain **only genuinely necessary, documented**
+  records for legal/safety/fraud purposes; do not silently retain unrelated
+  identifying information. **Exact retention categories, periods, access
+  controls and lawful bases are still undecided** and must be approved
+  before production implementation. Do not interpret the broad approval
+  as permission to retain all moderation reports indefinitely.
+- **Scope:** Staging-only test authorization. No live user deletion,
+  Play Console updates, customer messages, production migrations or
+  public privacy/legal promises are authorized.
+
 ## Verified existing flow
 
 - Signed-in user opens Profile → Support & Legal → Delete account → confirms
@@ -19,7 +41,7 @@
 - No verified server-side completion workflow or fixed retention timeline
   appears in the reviewed code. Do NOT claim account deletion is automatic.
 
-## Proposed manual process — requires owner/security/legal approval
+## Proposed manual process — staging testing approved; production/legal approvals outstanding
 
 1. **Intake and track:** Record timestamp, request ID, account identity,
    contact route, operator, verification status and next action. Never request
@@ -60,7 +82,7 @@
     completion, handle media/storage errors, and provide a secure escalation
     route. Backups and processor logs require separate policy treatment.
 
-## Mandatory staging test — still pending
+## Mandatory staging end-to-end test — still pending (SQL cleanup rehearsal passed)
 
 - Create a disposable test account via normal staging Auth sign-up,
   upload an avatar/banner, host and join synthetic LinkUps, submit a deletion
@@ -89,3 +111,27 @@ References: `app/delete/page.tsx`, `app/delete-account/page.tsx`,
 `supabase/migrations/20260523110000_support_requests.sql`,
 `supabase/migrations/20260523120000_support_requests_rpc.sql`,
 `supabase/migrations/20260610120000_profile_images_storage_paths.sql`.
+
+
+## SQL cleanup rehearsal — PASS (not a completed end-to-end deletion)
+
+On the isolated staging database, a single transaction used only the
+existing `host-a@nyvon-staging.invalid` synthetic account. It temporarily
+created a synthetic deletion support request, report and block, then tested
+the following cleanup order: support request → reports (no approved
+retention hold in the synthetic scenario) → blocks → attendance → hosted
+LinkUps → Auth identity last. All statements were followed by `ROLLBACK`.
+
+**Eight assertions passed:** target Auth account, hosted LinkUps, target
+attendance, support request, reports and blocks were absent after the
+cleanup sequence; another host's LinkUps and Auth account remained
+unchanged. This proves FK cascade behavior and that an explicit cleanup
+procedure can protect unrelated test users. It does **NOT** verify storage
+byte deletion, real Auth Admin API authentication, genuine user identity
+verification, account sessions, notification, or provider/backups removal.
+It does not establish a lawfully approved moderation retention policy.
+
+Complete the mandatory end-to-end tests above in a staging-only service
+session, including real photo upload/removal, unverified request denial,
+partial-failure retry, actual Auth Admin API deletion and proof of
+client/session revocation before changing a public/legal declaration.
