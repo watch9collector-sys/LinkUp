@@ -341,3 +341,9 @@ production deletion flow or declare full Google Play account-deletion
 compliance. Retest the production-capable deletion workflow with a
 synthetic uploaded avatar, a partially failing cleanup, and complete
 operator audit before launch.
+
+## Deleted staging-account fresh-session sign-in — owner-confirmed PASS
+
+After the permanently committed staging deletion, the owner followed the manual test instructions: return to the isolated Vercel preview, sign out, and attempt a new sign-in using the deleted disposable account. The owner reported **“Invalid login credentials.”** This is direct owner-reported UI evidence of rejected password sign-in; it complements the independently verified absence of Auth identity and sessions. No password, OTP or other credential was shared. No production accounts or data were accessed or deleted.
+
+**Still outstanding:** uploaded media bytes and external Storage API deletion, real authenticated Realtime subscription visibility, admin workflow failure/retry and user notification, moderation retention approval, Google Play Data safety alignment. The isolated deletion rehearsal plus rejected password sign-in should not be called complete production compliance.
