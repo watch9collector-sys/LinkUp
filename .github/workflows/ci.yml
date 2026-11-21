@@ -31,11 +31,16 @@ jobs:
       - name: Syntax-check isolated staging HTTP test (no network calls)
         run: node --check scripts/qa/verify-staging-anon-http.mjs
 
-      - name: Syntax-check isolated staging media and Realtime tests (no network calls)
+      - name: Syntax-check isolated staging media, Realtime and deletion QA (no network calls)
         run: |
           node --check scripts/qa/verify-staging-profile-image-lifecycle.mjs
           node --check scripts/qa/verify-staging-realtime-privacy.mjs
           node --check scripts/qa/verify-staging-account-deletion.mjs
+          node --check scripts/qa/resume-staging-deletion-20261120.mjs
+          bash -n scripts/qa/run-staging-e2e.sh
+          bash -n scripts/qa/run-staging-media.sh
+          bash -n scripts/qa/run-staging-deletion.sh
+          bash -n scripts/qa/run-staging-deletion-resume.sh
 
       - name: Lint
         run: npm run lint
