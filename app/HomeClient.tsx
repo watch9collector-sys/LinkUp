@@ -693,28 +693,6 @@ export function HomeClient() {
                   placeholder="you@example.com"
                 />
               </div>
-              {mode === "signup" ? (
-                <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-xs leading-relaxed text-white/70">
-                  <input
-                    type="checkbox"
-                    checked={signupTermsAccepted}
-                    onChange={(event) => setSignupTermsAccepted(event.target.checked)}
-                    required
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-400"
-                  />
-                  <span>
-                    I confirm I am 18 or older, agree to the{" "}
-                    <Link href="/terms" className="text-emerald-300 underline">
-                      Terms of Service
-                    </Link>
-                    , including community and child-safety rules, and acknowledge the{" "}
-                    <Link href="/privacy" className="text-emerald-300 underline">
-                      Privacy Policy
-                    </Link>
-                    .
-                  </span>
-                </label>
-              ) : null}
               {banner.kind === "info" ? (
                 <p
                   className="rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-sm text-emerald-100/95"
@@ -831,6 +809,28 @@ export function HomeClient() {
                   If email confirmation is enabled in your Supabase project, you
                   will need to click the link in your inbox before signing in.
                 </p>
+              ) : null}
+              {mode === "signup" ? (
+                <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 text-xs leading-relaxed text-white/70">
+                  <input
+                    type="checkbox"
+                    checked={signupTermsAccepted}
+                    onChange={(event) => setSignupTermsAccepted(event.target.checked)}
+                    required
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-400"
+                  />
+                  <span>
+                    I confirm I am 18 or older, agree to the{" "}
+                    <Link href="/terms" className="text-emerald-300 underline">
+                      Terms of Service
+                    </Link>
+                    , including community and child-safety rules, and acknowledge the{" "}
+                    <Link href="/privacy" className="text-emerald-300 underline">
+                      Privacy Policy
+                    </Link>
+                    .
+                  </span>
+                </label>
               ) : null}
               {banner.kind === "info" ? (
                 <p
