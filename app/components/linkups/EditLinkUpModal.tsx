@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import { Modal } from "../Modal";
 import { Button } from "../ui/Button";
 import { SelectField, TextAreaField, TextInput } from "../ui/FormField";
@@ -41,6 +42,7 @@ function EditLinkUpForm({ linkup, onClose, onUpdated }: EditLinkUpFormProps) {
   const [startsLocal, setStartsLocal] = useState(toLocalDatetimeValue(linkup.starts_at));
   const [description, setDescription] = useState(linkup.description);
   const [saving, setSaving] = useState(false);
+  const [policyAccepted, setPolicyAccepted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const minLocal = minLocalDatetimeValue();
@@ -54,6 +56,10 @@ function EditLinkUpForm({ linkup, onClose, onUpdated }: EditLinkUpFormProps) {
     e.preventDefault();
 
     setFormError(null);
+    if (!policyAccepted) {
+      setFormError("Accept Nyvon’s Terms and community rules before updating this LinkUp.");
+      return;
+    }
     const t = title.trim();
     const loc = locationLabel.trim();
     const desc = description.trim();
@@ -159,6 +165,20 @@ function EditLinkUpForm({ linkup, onClose, onUpdated }: EditLinkUpFormProps) {
       <p className="-mt-2 text-xs leading-relaxed text-white/42">
         Clear details help people decide to join.
       </p>
+      <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-white/70">
+        <input
+          type="checkbox"
+          required
+          checked={policyAccepted}
+          onChange={(event) => setPolicyAccepted(event.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-400"
+        />
+        <span>
+          I agree to Nyvon’s{" "}
+          <Link href="/terms" className="text-emerald-300 underline">Terms and community rules</Link>
+          {" "}and will not post prohibited or unsafe content.
+        </span>
+      </label>
       {formError ? (
         <p
           className="whitespace-pre-wrap text-left text-sm text-red-300/95"

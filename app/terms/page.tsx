@@ -11,7 +11,7 @@ export default function TermsPage() {
       description="Terms for using Nyvon, an early real-world meetup service operated by Nyvon LLC™."
     >
       <div className="space-y-6">
-        <p className="text-white/55">Last updated: November 19, 2026</p>
+        <p className="text-white/55">Last updated: November 21, 2026</p>
         <section>
           <h2 className="font-semibold text-white">Eligibility</h2>
           <p className="mt-2 text-white/68">
@@ -25,7 +25,29 @@ export default function TermsPage() {
             Use Nyvon lawfully and respectfully. Do not harass, threaten,
             discriminate, impersonate, defraud, spam, share another person&apos;s
             private address without permission, or organize unsafe or illegal
-            activities.
+            activities. Nudity, sexually explicit content, and graphic violence
+            are not permitted.
+          </p>
+        </section>
+        <section>
+          <h2 className="font-semibold text-white">Child safety standards</h2>
+          <p className="mt-2 text-white/68">
+            Nyvon explicitly prohibits child sexual abuse and exploitation
+            (CSAE), including child sexual abuse material (CSAM), grooming,
+            trafficking, sexual solicitation of minors, and conduct that
+            endangers children. Do not upload, link to, or promote this content.
+          </p>
+          <p className="mt-2 text-white/68">
+            Report prohibited content or behavior using the in-app report
+            controls or email{" "}
+            <a className="text-emerald-300 underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+            We review reports and may remove content or restrict accounts.
+            When required by law, confirmed CSAM is reported to the National
+            Center for Missing &amp; Exploited Children or relevant authorities.
+            For immediate danger, contact emergency services.
+          </p>
+          <p className="mt-2 text-white/68">
+            See our <a className="text-emerald-300 underline" href="/child-safety">Child Safety Standards</a>.
           </p>
         </section>
         <section>

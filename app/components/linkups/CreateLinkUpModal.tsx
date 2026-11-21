@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import { Modal } from "../Modal";
 import { Button } from "../ui/Button";
 import { SelectField, TextAreaField, TextInput } from "../ui/FormField";
@@ -36,6 +37,7 @@ export function CreateLinkUpModal({
   const [startsLocal, setStartsLocal] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [policyAccepted, setPolicyAccepted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const minLocal = minLocalDatetimeValue();
@@ -47,6 +49,7 @@ export function CreateLinkUpModal({
     setStartsLocal("");
     setDescription("");
     setFormError(null);
+    setPolicyAccepted(false);
   }, []);
 
   const close = useCallback(() => {
@@ -57,6 +60,10 @@ export function CreateLinkUpModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
+    if (!policyAccepted) {
+      setFormError("Accept Nyvon’s community rules and Terms before publishing a LinkUp.");
+      return;
+    }
     const t = title.trim();
     const loc = locationLabel.trim();
     const desc = description.trim();
@@ -163,6 +170,21 @@ export function CreateLinkUpModal({
         <p className="-mt-2 text-xs leading-relaxed text-white/42">
           Clear details help people decide to join.
         </p>
+        <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-white/70">
+          <input
+            type="checkbox"
+            required
+            checked={policyAccepted}
+            onChange={(event) => setPolicyAccepted(event.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-400"
+          />
+          <span>
+            I agree to Nyvon’s{" "}
+            <Link href="/terms" className="text-emerald-300 underline">Terms and community rules</Link>
+            {" "}and will not post nudity, graphic violence, child exploitation,
+            harassment, or unsafe content.
+          </span>
+        </label>
         {formError ? (
           <p
             className="whitespace-pre-wrap text-left text-sm text-red-300/95"
