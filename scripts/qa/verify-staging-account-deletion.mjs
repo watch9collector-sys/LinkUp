@@ -124,12 +124,39 @@ try {
   const media=[avatarPath(victimId),bannerPath(victimId)];
   const removed=await bucket.remove(media);
   assert.ifError(removed.error);
-  for(const path of media) {
-    const check=await bucket.download(path);
-    assert.ok(check.error,"Removed media must not be retrievable");
-  }
+  // The storage row is deleted before a previously cached download has
+  // necessarily expired. Confirm metadata removal, then check bounded
+  // eventual read denial. This never equates to instant cache revocation.
   assert.ok(await emptyFolder("avatars/"+victimId),"Avatar path must be empty");
   assert.ok(await emptyFolder("banners/"+victimId),"Banner path must be empty");
+
+  async function verifyMediaRemoval(path) {
+    const label=path.startsWith("avatars/")?"avatar":"banner";
+    let staleSeconds=0;
+    let denied=false;
+    for(let attempt=0;attempt<17;attempt++) {
+      const check=await bucket.download(path);
+      if(check.error){ denied=true; break; }
+      if(attempt===16)break;
+      await new Promise(resolve=>setTimeout(resolve,5000));
+      staleSeconds+=5;
+    }
+    assert.ok(denied,"Deleted "+label+" remains retrievable after bounded 80-second CDN wait");
+    if(staleSeconds>0) {
+      console.warn("WARN deleted staging "+label+" remained cached for approximately "+staleSeconds+" seconds");
+    }
+    const freshUrl=new URL("/storage/v1/object/public/profile-images/"+
+      path.split("/").map(encodeURIComponent).join("/"),URL);
+    freshUrl.searchParams.set("qa_cache_probe",crypto.randomUUID());
+    const fresh=await fetch(freshUrl,{
+      cache:"no-store",
+      headers:{"Cache-Control":"no-cache"},
+      signal:AbortSignal.timeout(12000),
+    });
+    assert.ok(!fresh.ok,"Deleted staging "+label+" remains publicly available at a fresh URL");
+    console.log("PASS deleted "+label+" absent from Storage and inaccessible after CDN wait");
+  }
+  await Promise.all(media.map(verifyMediaRemoval));
 
   // Support PII does not automatically cascade on Auth deletion.
   assert.ifError((await admin.from("support_requests").delete().eq("user_id",victimId)).error);
