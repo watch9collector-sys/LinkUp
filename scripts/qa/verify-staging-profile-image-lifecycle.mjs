@@ -81,22 +81,6 @@ const run = async () => {
       assert.ifError(listed.error);
       assert.ok(!(listed.data ?? []).some(item => item.name === filename),
         "Deleted staging object remains listed in Storage: " + label);
-      // Test a new public URL (cache-busted, no cache) for this public bucket.
-      // This is an additional check; it does not replace the SDK readback.
-      const freshUrl = new URL(
-        "/storage/v1/object/public/profile-images/" +
-          path.split("/").map(encodeURIComponent).join("/"),
-        parsed.origin
-      );
-      freshUrl.searchParams.set("qa_cache_probe", crypto.randomUUID());
-      const freshResponse = await fetch(freshUrl, {
-        cache: "no-store",
-        headers: { apikey: key, "Cache-Control": "no-cache" },
-        signal: AbortSignal.timeout(12000),
-      });
-      assert.ok(!freshResponse.ok,
-        "Deleted staging object still served at a fresh public URL: " + label);
-
       // Smart CDN invalidation isn't always instantaneous. Wait up to 65
       // seconds and reject any object that remains downloadable beyond that.
       // Retrying must not be mistaken for an immediate deletion guarantee.
@@ -117,6 +101,22 @@ const run = async () => {
         console.warn("WARN CDN readback persisted briefly after deletion:", label,
           accessibleCount * 5, "second(s) of retry window");
       }
+      // Test a new public URL (cache-busted, no cache) for this public bucket.
+      // This is an additional check; it does not replace the SDK readback.
+      const freshUrl = new URL(
+        "/storage/v1/object/public/profile-images/" +
+          path.split("/").map(encodeURIComponent).join("/"),
+        parsed.origin
+      );
+      freshUrl.searchParams.set("qa_cache_probe", crypto.randomUUID());
+      const freshResponse = await fetch(freshUrl, {
+        cache: "no-store",
+        headers: { apikey: key, "Cache-Control": "no-cache" },
+        signal: AbortSignal.timeout(12000),
+      });
+      assert.ok(!freshResponse.ok,
+        "Deleted staging object still served at a fresh public URL: " + label);
+
       uploaded.delete(path);
       console.log("PASS staging metadata removal and eventual readback denial:", label);
     }
