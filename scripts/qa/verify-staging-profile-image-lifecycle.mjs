@@ -65,12 +65,60 @@ const run = async () => {
       console.log("PASS staging upload and download:", path.startsWith("avatars/") ? "avatar" : "banner");
     }
     for (const path of paths) {
+      const label = path.startsWith("avatars/") ? "avatar" : "banner";
       const removed = await client.storage.from("profile-images").remove([path]);
       assert.ifError(removed.error);
+
+      // Confirm origin metadata first. A cached download can remain successful
+      // briefly even after storage.objects is deleted. Do not hide that risk.
+      const lastSlash = path.lastIndexOf("/");
+      const folder = path.slice(0, lastSlash);
+      const filename = path.slice(lastSlash + 1);
+      const listed = await client.storage.from("profile-images").list(folder, {
+        search: filename,
+        limit: 100,
+      });
+      assert.ifError(listed.error);
+      assert.ok(!(listed.data ?? []).some(item => item.name === filename),
+        "Deleted staging object remains listed in Storage: " + label);
+      // Test a new public URL (cache-busted, no cache) for this public bucket.
+      // This is an additional check; it does not replace the SDK readback.
+      const freshUrl = new URL(
+        "/storage/v1/object/public/profile-images/" +
+          path.split("/").map(encodeURIComponent).join("/"),
+        parsed.origin
+      );
+      freshUrl.searchParams.set("qa_cache_probe", crypto.randomUUID());
+      const freshResponse = await fetch(freshUrl, {
+        cache: "no-store",
+        headers: { apikey: key, "Cache-Control": "no-cache" },
+        signal: AbortSignal.timeout(12000),
+      });
+      assert.ok(!freshResponse.ok,
+        "Deleted staging object still served at a fresh public URL: " + label);
+
+      // Smart CDN invalidation isn't always instantaneous. Wait up to 65
+      // seconds and reject any object that remains downloadable beyond that.
+      // Retrying must not be mistaken for an immediate deletion guarantee.
+      let accessibleCount = 0;
+      let inaccessible = false;
+      for (let attempt = 0; attempt < 14; attempt++) {
+        const check = await client.storage.from("profile-images").download(path);
+        if (check.error) {
+          inaccessible = true;
+          break;
+        }
+        accessibleCount++;
+        if (attempt < 13) await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+      assert.ok(inaccessible,
+        "Deleted staging image remained retrievable beyond 65 seconds: " + label);
+      if (accessibleCount > 0) {
+        console.warn("WARN CDN readback persisted briefly after deletion:", label,
+          accessibleCount * 5, "second(s) of retry window");
+      }
       uploaded.delete(path);
-      const after = await client.storage.from("profile-images").download(path);
-      assert.ok(after.error, "Expected removed object to be inaccessible");
-      console.log("PASS staging object removal and readback denial:", path.startsWith("avatars/") ? "avatar" : "banner");
+      console.log("PASS staging metadata removal and eventual readback denial:", label);
     }
     completed = true;
   } finally {
