@@ -21,40 +21,26 @@ export function toLinkUpView(row: LinkUpRow, currentUserId: string | undefined):
     longitude: row.longitude ?? null,
     starts_at: row.starts_at,
     description: row.description,
-    host_id: row.host_id,
+    host_id: row.host_id ?? "",
     host_display_name: row.host_display_name,
     created_at: row.created_at,
-    attendee_count: active.length,
+    attendee_count: row.attendee_count ?? active.length,
+    location_is_approximate: row.location_is_approximate ?? false,
     active_attendees: active,
-    you_joined: Boolean(
+    you_joined: row.you_joined ?? Boolean(
       currentUserId && active.some((a) => a.user_id === currentUserId),
     ),
-    you_host: Boolean(currentUserId && row.host_id === currentUserId),
+    you_host: row.you_host ?? Boolean(currentUserId && row.host_id === currentUserId),
   };
 }
 
-const linkupSelect = `
-  id,
-  title,
-  category,
-  location,
-  latitude,
-  longitude,
-  starts_at,
-  description,
-  host_id,
-  host_display_name,
-  created_at,
-  updated_at,
-  linkup_attendees ( id, user_id, display_name, joined_at )
-`;
+
 
 function wrapPostgrest(msg: string | undefined | null): string {
   return clarifyPostgrestMessage(msg ?? "Unknown error");
 }
 
 export type LinkUpsCursor = {
-  phase: "upcoming" | "past";
   offset: number;
   asOf: string;
 };
@@ -71,24 +57,15 @@ export async function fetchLinkUps(
 }> {
   const safePageSize = Math.max(1, Math.min(pageSize, 100));
   const asOf = cursor?.asOf ?? new Date().toISOString();
-  const phase = cursor?.phase ?? "upcoming";
   const offset = Math.max(0, cursor?.offset ?? 0);
-  const end = offset + safePageSize;
-
-  let query = supabase.from(LINKUPS_TABLE).select(linkupSelect);
-
-  query =
-    phase === "upcoming"
-      ? query
-          .gte("starts_at", asOf)
-          .order("starts_at", { ascending: true })
-          .order("id", { ascending: true })
-      : query
-          .lt("starts_at", asOf)
-          .order("starts_at", { ascending: false })
-          .order("id", { ascending: true });
-
-  const { data, error } = await query.range(offset, end);
+  // Requires the reviewed fetch_safe_linkups migration in staging first.
+  // The SECURITY DEFINER RPC returns redacted fields for nonparticipants;
+  // NEVER fall back to directly selecting unredacted tables for guests.
+  const { data, error } = await supabase.rpc("fetch_safe_linkups", {
+    p_as_of: asOf,
+    p_limit: safePageSize + 1,
+    p_offset: offset,
+  });
 
   if (error) {
     return {
@@ -103,12 +80,38 @@ export async function fetchLinkUps(
   const hasMoreInPhase = rows.length > safePageSize;
 
   const nextCursor: LinkUpsCursor | null = hasMoreInPhase
-    ? { phase, offset: offset + safePageSize, asOf }
-    : phase === "upcoming"
-      ? { phase: "past", offset: 0, asOf }
-      : null;
+    ? { offset: offset + safePageSize, asOf }
+    : null;
 
   return { data: page, error: null, nextCursor };
+}
+
+/** Host-only history. Direct table reads are authorized by the host RLS policy.
+ * Past LinkUps never re-enter public Explore or upcoming discovery.
+ */
+export async function fetchHostedLinkUpHistory(userId: string): Promise<{
+  data: LinkUpView[];
+  error: Error | null;
+}> {
+  const { data, error } = await supabase
+    .from(LINKUPS_TABLE)
+    .select(`
+      id, title, category, location, latitude, longitude, starts_at,
+      description, host_id, host_display_name, created_at, updated_at,
+      linkup_attendees (id, user_id, display_name, joined_at)
+    `)
+    .eq("host_id", userId)
+    .lt("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    return { data: [], error: new Error(wrapPostgrest(error.message)) };
+  }
+  return {
+    data: ((data ?? []) as LinkUpRow[]).map((row) => toLinkUpView(row, userId)),
+    error: null,
+  };
 }
 
 export async function createLinkUp(input: {

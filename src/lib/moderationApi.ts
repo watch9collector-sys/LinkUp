@@ -112,6 +112,14 @@ export async function fetchMyBlocks(): Promise<{
   return { data: (data ?? []) as UserBlockRow[], error: null };
 }
 
+/** Block a LinkUp host using the LinkUp id, without exposing the host UUID to a nonparticipant. */
+export async function blockLinkUpHost(linkupId: string): Promise<{ error: Error | null }> {
+  const { error } = await supabase.rpc("block_linkup_host", {
+    p_linkup_id: linkupId,
+  });
+  return { error: error ? wrapError(error.message) : null };
+}
+
 export async function blockUser(
   blockedId: string,
 ): Promise<{ error: Error | null }> {

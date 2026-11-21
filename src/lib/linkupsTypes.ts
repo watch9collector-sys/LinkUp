@@ -25,11 +25,15 @@ export type LinkUpRow = {
   longitude: number | null;
   starts_at: string;
   description: string;
-  host_id: string;
+  host_id: string | null;
   host_display_name: string;
   created_at: string;
   updated_at: string;
   linkup_attendees?: LinkUpAttendeeRow[] | null;
+  attendee_count?: number;
+  you_joined?: boolean;
+  you_host?: boolean;
+  location_is_approximate?: boolean;
 };
 
 export type LinkUpView = {
@@ -45,6 +49,7 @@ export type LinkUpView = {
   host_display_name: string;
   created_at: string;
   attendee_count: number;
+  location_is_approximate: boolean;
   active_attendees: LinkUpAttendeeRow[];
   you_joined: boolean;
   you_host: boolean;

@@ -43,7 +43,8 @@ export function ExploreClient() {
   >(null);
 
   const allMapPoints = items.map(linkUpMapPoint);
-  const mapPoints = allMapPoints.filter((point) => !point.approximate);
+  // Never plot even rounded home coordinates for visitors who have not joined.
+  const mapPoints = allMapPoints.filter((point) => point.hasStoredCoordinates && !point.approximate);
   const selectedLinkUp = items.find((item) => item.id === detailsId) ?? null;
 
   const signedIn = Boolean(user);

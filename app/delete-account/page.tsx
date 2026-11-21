@@ -24,7 +24,7 @@ export default function DeleteAccountInformationPage() {
         <section className="space-y-3">
           <h2 className="font-semibold text-white">Option 1 — Inside Nyvon</h2>
           <p className="text-white/70">
-            Sign in → Profile → Delete account → Confirm → Submit deletion request.
+            Sign in → Profile → Support &amp; Legal → Delete account → Confirm → Submit deletion request.
           </p>
           <p>
             <Link
@@ -57,8 +57,12 @@ export default function DeleteAccountInformationPage() {
         <section className="space-y-3">
           <h2 className="font-semibold text-white">What happens next</h2>
           <p className="text-white/70">
-            Our team will verify account ownership and process the deletion request.
-            Account deletion is permanent and cannot be undone.
+            Our team will verify account ownership and process the deletion
+            request manually. Submitting a request does not immediately delete
+            your account. We will confirm the processing timeline and any
+            information we must retain for legal or security reasons when
+            responding to your verified request. Completed account deletion is
+            permanent and cannot be undone.
           </p>
           <p className="text-white/70">
             For questions about data deletion or retention, contact{" "}

@@ -6,7 +6,7 @@ import type { LinkUpView } from "@/src/lib/linkupsTypes";
 import { formatLinkUpTime } from "@/src/lib/linkupsApi";
 import { polishDisplayName } from "@/src/lib/investorDisplay";
 import {
-  blockUser,
+  blockLinkUpHost,
   checkIsPlatformFounder,
   founderRemoveLinkUp,
 } from "@/src/lib/moderationApi";
@@ -26,7 +26,7 @@ type LinkUpDetailsModalProps = {
   onLeave: (id: string) => void;
   onDelete?: (id: string) => Promise<{ ok: boolean; error: string | null }>;
   onFounderRemoved?: () => void;
-  onBlockedHost?: (hostId: string) => void;
+  onBlockedHost?: () => void;
   onEdit?: () => void;
 };
 
@@ -40,7 +40,7 @@ type LinkUpDetailsBodyProps = {
   onLeave: (id: string) => void;
   onDelete?: (id: string) => Promise<{ ok: boolean; error: string | null }>;
   onFounderRemoved?: () => void;
-  onBlockedHost?: (hostId: string) => void;
+  onBlockedHost?: () => void;
   onEdit?: () => void;
 };
 
@@ -125,13 +125,13 @@ function LinkUpDetailsBody({
     setBlockError(null);
     setBlockBusy(true);
     try {
-      const { error } = await blockUser(linkup.host_id);
+      const { error } = await blockLinkUpHost(linkup.id);
       if (error) {
         setBlockError(error.message);
         return;
       }
       setBlockDone(true);
-      onBlockedHost?.(linkup.host_id);
+      onBlockedHost?.();
     } finally {
       setBlockBusy(false);
     }
@@ -188,7 +188,11 @@ function LinkUpDetailsBody({
           <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-white/40">
             Active attendees
           </h3>
-          {linkup.active_attendees.length > 0 ? (
+          {!linkup.you_host && !linkup.you_joined ? (
+            <p className="mt-2 text-sm text-white/45">
+              {linkup.attendee_count} going. Attendee identities are available after joining.
+            </p>
+          ) : linkup.active_attendees.length > 0 ? (
             <ul className="mt-3 flex flex-wrap gap-2">
               {linkup.active_attendees.slice(0, 8).map((attendee) => (
                 <li
@@ -395,7 +399,7 @@ function LinkUpDetailsBody({
       <ReportModal
         open={reportOpen}
         onClose={() => setReportOpen(false)}
-        reportedUserId={linkup.host_id}
+        reportedUserId={linkup.host_id || null}
         reportedLinkUpId={linkup.id}
         title="Report LinkUp"
       />
