@@ -37,6 +37,7 @@ jobs:
           node --check scripts/qa/verify-staging-realtime-privacy.mjs
           node --check scripts/qa/verify-staging-account-deletion.mjs
           node --check scripts/qa/resume-staging-deletion-20261120.mjs
+          node --check scripts/qa/verify-production-privacy-gate.mjs
           bash -n scripts/qa/run-staging-e2e.sh
           bash -n scripts/qa/run-staging-media.sh
           bash -n scripts/qa/run-staging-deletion.sh
