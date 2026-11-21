@@ -14,6 +14,9 @@
 - On Nov 20–21, 2026, **3 signed-in deletion-request records** were linked to **2 existing confirmed-email accounts**; all request emails exactly matched confirmed Auth emails.
 - Restricted operations schema: `nyvon_deletion_ops.cases`. It holds one row per account with the original request UUIDs, initial/latest timestamps, status and confirmation timestamps. It is NOT in Supabase's exposed API schemas and has no anon/authenticated grants.
 - Both accounts were emailed individually from `nyvonsupport@gmail.com` to their registered/confirmed account email and asked to reconfirm deletion or contest the request. The case status is `awaiting_requester_confirmation`; no account has been removed.
+- **2026-11-21 delivery failure (no user PII in repository):** Gmail reported SMTP `550 5.1.1` for ONE of the original case-confirmation emails. That recipient must NOT be treated as reached or confirmed, even though an earlier Supabase Auth email was marked confirmed. The other case also remains unconfirmed. No real accounts were removed and no alternate recipient has been verified.
+- **Bounce triage:** Keep the case paused. Check actual authenticated requester contact via a secure signed-in interaction; offer a way to update their account email through an independently verified flow. Do not blindly re-send to a guessed address, mark a bounce as requester confirmation, or close the ticket as fulfilled. Document delivery error class and next contact method in the restricted operations case notes, not public source control. Escalate unresolved cases within internal 30-day service target; do not delete without verified renewed intent and case-specific founder approval.
+
 - Do not put account emails, UUIDs, private event titles, messages or storage paths in the GitHub repository, tickets, public dashboard, or ordinary logs.
 
 ## Manual case procedure (case-specific; destructive operations separately gated)
