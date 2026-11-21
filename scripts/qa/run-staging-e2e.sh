@@ -48,8 +48,31 @@ cleanup_environment() {
 }
 trap cleanup_environment EXIT
 
+# Run both independent suites, even if one fails, so a storage-cache
+# issue cannot prevent the separate authenticated access-control evidence.
+# Report each result separately, and NEVER return success if either fails.
 printf '\n[1/2] Checking disposable avatar/banner upload, download and deletion...\n'
-node scripts/qa/verify-staging-profile-image-lifecycle.mjs
+storage_status=0
+node scripts/qa/verify-staging-profile-image-lifecycle.mjs || storage_status=$?
+
 printf '\n[2/2] Checking real Auth/REST and Realtime host/member/outsider/guest privacy...\n'
-node scripts/qa/verify-staging-realtime-privacy.mjs
-printf '\nPASS: Both staging-only QA suites completed. This does not approve production release.\n'
+privacy_status=0
+node scripts/qa/verify-staging-realtime-privacy.mjs || privacy_status=$?
+
+printf '\nFINAL STAGING QA RESULTS:\n'
+if [[ "$storage_status" -eq 0 ]]; then
+  printf 'PASS: Avatar/banner media lifecycle and removal verification.\n'
+else
+  printf 'FAIL: Avatar/banner media lifecycle (exit %s); deletion remains unverified.\n' "$storage_status"
+fi
+if [[ "$privacy_status" -eq 0 ]]; then
+  printf 'PASS: Authenticated host/member/outsider/guest security checks.\n'
+else
+  printf 'FAIL: Authenticated host/member/outsider/guest security checks (exit %s).\n' "$privacy_status"
+fi
+
+if [[ "$storage_status" -ne 0 || "$privacy_status" -ne 0 ]]; then
+  printf 'NO-GO: One or more staging tests failed. Do not proceed with the production privacy cutover.\n' >&2
+  exit 1
+fi
+printf 'PASS: Both staging-only QA suites completed. This does not approve production release.\n'
