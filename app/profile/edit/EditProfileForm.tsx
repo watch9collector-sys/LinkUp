@@ -104,6 +104,7 @@ function ProfileFieldsForm({ user }: { user: User }) {
     emptyImageState(readMetaString(meta, "banner_url")),
   );
   const [saving, setSaving] = useState(false);
+  const [policyAccepted, setPolicyAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [saveProgress, setSaveProgress] = useState(0);
@@ -203,6 +204,10 @@ function ProfileFieldsForm({ user }: { user: User }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!policyAccepted) {
+      setError("Accept Nyvon’s Terms and community rules before saving profile content.");
+      return;
+    }
     if (avatar.processing || banner.processing) {
       setError("Please wait for image optimization to finish.");
       return;
@@ -529,6 +534,20 @@ function ProfileFieldsForm({ user }: { user: User }) {
           </p>
         </div>
 
+        <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-white/70">
+          <input
+            type="checkbox"
+            required
+            checked={policyAccepted}
+            onChange={(event) => setPolicyAccepted(event.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-400"
+          />
+          <span>
+            I agree to Nyvon’s <TextLink href="/terms">Terms and community rules</TextLink>,
+            including the restrictions on nudity, graphic violence, and exploitative content,
+            before posting or updating profile text and images.
+          </span>
+        </label>
         {saving && saveProgressLabel ? (
           <UploadProgress value={saveProgress} label={saveProgressLabel} />
         ) : null}
