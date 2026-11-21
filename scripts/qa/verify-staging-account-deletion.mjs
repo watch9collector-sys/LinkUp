@@ -116,9 +116,19 @@ try {
   // An unsigned-in client cannot delete someone else's image.
   const guest=client(publicKey);
   const guestRemoval=await guest.storage.from("profile-images").remove([avatarPath(victimId)]);
-  assert.ok(guestRemoval.error,"Anonymous user must not be allowed to remove profile media");
+  // Supabase Storage may return an empty success for a DELETE filtered
+  // to zero rows by RLS. Only verify the actual object survived.
+  const stillListed=await bucket.list("avatars/"+victimId,{
+    search:"qa-deletion-avatar.png",limit:100,
+  });
+  assert.ifError(stillListed.error);
+  assert.ok((stillListed.data??[]).some(obj=>obj.name==="qa-deletion-avatar.png"),
+    "SECURITY FAILURE: guest deletion actually removed the test avatar");
+  if(!guestRemoval.error) {
+    console.log("INFO guest DELETE returned without an error, but object remained protected by RLS");
+  }
   await guest.auth.signOut();
-  console.log("PASS anonymous media deletion denied");
+  console.log("PASS anonymous media deletion prevented (verified object intact)");
 
   // Privileged server-only fulfillment: remove ONLY this verified user profile's media.
   const media=[avatarPath(victimId),bannerPath(victimId)];
