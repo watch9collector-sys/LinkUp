@@ -9,105 +9,105 @@ export default function PrivacyPage() {
   return (
     <LegalCenterCard
       title="Privacy Policy"
-      description="How Nyvon LLC™ handles information when you use Nyvon."
+      description="How Nyvon LLC™ collects, uses, shares, and handles information."
     >
       <div className="space-y-6">
-        <p className="text-white/55">Last updated: November 19, 2026</p>
+        <p className="text-white/55">Last updated: November 20, 2026</p>
+
         <section>
           <h2 className="font-semibold text-white">Who operates Nyvon</h2>
           <p className="mt-2 text-white/68">
-            Nyvon LLC™ operates Nyvon. Contact us at{" "}
-            <a className="text-emerald-300 underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
-            {" "}with privacy questions or requests.
+            Nyvon LLC™ operates Nyvon. For privacy questions or requests,
+            email <a className="text-emerald-300 underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
           </p>
         </section>
+
         <section>
-          <h2 className="font-semibold text-white">Information collected</h2>
+          <h2 className="font-semibold text-white">Information we process</h2>
           <p className="mt-2 text-white/68">
-            Depending on how you use Nyvon, we process account information (including
-            email and authentication details), display name, profile details,
-            uploaded profile images, hosted and joined LinkUps, event times,
-            locations and coordinates, attendee records, support requests, and
-            reports of unsafe content or behavior. The service may also collect
-            technical diagnostics needed to operate and protect the app.
+            Depending on your activity, this includes your email and account
+            authentication details, display name, biography, profile photos and
+            banners, hosted and joined LinkUps, event titles, descriptions, times,
+            entered location labels and coordinates, attendance and interactions,
+            support and deletion requests, reports, blocks, moderation records,
+            and technical and usage analytics. We do not ask you to send us
+            your password when requesting support or deletion.
           </p>
         </section>
+
         <section>
-          <h2 className="font-semibold text-white">Why we process information</h2>
+          <h2 className="font-semibold text-white">How we use information</h2>
           <p className="mt-2 text-white/68">
-            To create and secure accounts, let people discover and participate in
-            events, show their profiles, provide support, investigate reports,
-            enforce our rules, and maintain service reliability.
+            To operate and protect accounts, display profiles, help users discover,
+            host and join LinkUps, run location and mapping features, provide
+            support, investigate reports, prevent abuse, measure product usage,
+            and maintain the reliability and security of the service.
           </p>
         </section>
+
         <section>
-          <h2 className="font-semibold text-white">Meetup location and attendee privacy</h2>
+          <h2 className="font-semibold text-white">Locations and public visibility</h2>
           <p className="mt-2 text-white/68">
-            Public discovery is intended to show approximate meetup areas and
-            attendee counts. Exact event locations, detailed descriptions and
-            attendee identities should be available only to authorized event
-            participants or hosts. Avoid entering private addresses or personal
-            information in an event title, which may be public.
+            Organizers can enter event locations that may include precise coordinates
+            or addresses. In the current version, LinkUp details and location
+            information may be accessible to other users, including guests.
+            Titles and descriptions can also disclose a precise location if an
+            organizer types one into them. Do not put a home address or other
+            sensitive information in a public LinkUp. Some profile images and
+            banners are served from public file URLs; do not upload private photos.
+            Location searches may send entered place information to a geocoding
+            provider. Device location access, if offered by a feature, requires
+            the permission provided by your device or browser.
           </p>
         </section>
+
         <section>
-          <h2 className="font-semibold text-white">Service providers and map services</h2>
+          <h2 className="font-semibold text-white">Service providers and analytics</h2>
           <p className="mt-2 text-white/68">
-            We use Supabase for authentication, database and file storage,
-            Vercel to host the website, and OpenStreetMap services for mapping
-            and location lookup. A location search may be sent to an external
-            geocoding service to resolve an entered place. We also use PostHog
-            for product-usage analytics. Depending on which features you use,
-            analytics may include an account identifier, activity type,
-            event identifier, page path, campaign attribution and timestamps.
-            These providers may process technical information as part of
-            delivering those services. Leaflet is the map display software
-            used by the site.
+            We use Supabase for accounts, databases and files; Vercel to host
+            the website; OpenStreetMap-related services for maps and place
+            searches; and PostHog for product analytics. Analytics may include
+            a user or device identifier, activity and event identifiers, page
+            path, campaign attribution, and timestamps. Service providers may
+            also receive technical connection information such as IP addresses
+            and request metadata. We use browser storage to maintain sessions.
           </p>
         </section>
+
         <section>
-          <h2 className="font-semibold text-white">Storage and retention</h2>
+          <h2 className="font-semibold text-white">Security and retention</h2>
           <p className="mt-2 text-white/68">
-            Account and activity information is generally stored while an account
-            remains active and the service needs it. When account deletion is
-            requested, our team verifies the request and reviews account data
-            for deletion. Some information may need to be retained where
-            necessary for legal obligations, security, fraud prevention or
-            resolving disputes. We will communicate any applicable exceptions
-            and the expected processing timeline when responding to a verified
-            deletion request. A fixed retention schedule is not yet published;
-            contact us for information about a particular data category.
+            We use encrypted connections and access controls to protect data,
+            though no service can guarantee absolute security. Information is
+            generally retained while needed to operate the service. A single
+            fixed retention schedule is not yet published. Where genuinely
+            necessary for legal obligations, safety, fraud prevention or dispute
+            handling, limited records may be retained after an account-deletion
+            request; we will explain applicable exceptions in our response.
           </p>
         </section>
+
         <section>
-          <h2 className="font-semibold text-white">Browser storage and security</h2>
+          <h2 className="font-semibold text-white">Your choices and account deletion</h2>
           <p className="mt-2 text-white/68">
-            Nyvon uses browser storage to maintain authentication sessions.
-            Hosting and map providers may receive technical connection data,
-            and service providers may use their own cookies or logs. We use
-            encrypted connections in transit, but no online system can
-            guarantee absolute security.
+            You may update some profile details or contact us about access,
+            correction and deletion. You can submit a deletion request inside
+            Nyvon or without the app through the{" "}
+            <Link className="text-emerald-300 underline" href="/delete-account">
+              account-deletion instructions
+            </Link>.
+            A submitted request is recorded for manual verification and processing;
+            it does not immediately delete the account or all its associated data.
+            We will communicate the expected processing timeline and any
+            permissible retention when responding to a verified request.
           </p>
         </section>
+
         <section>
           <h2 className="font-semibold text-white">Age eligibility</h2>
           <p className="mt-2 text-white/68">
-            Nyvon is intended for adults age 18 and older. Users under 18 should
-            not create an account or use the service. Please contact us if you
-            believe an underage account exists.
-          </p>
-        </section>
-        <section>
-          <h2 className="font-semibold text-white">Your choices and deletion requests</h2>
-          <p className="mt-2 text-white/68">
-            You can update some account details from your profile, or contact us
-            to request access, corrections or deletion of your information.
-            Instructions for requesting account and associated-data deletion,
-            including without the app, are available on the{" "}
-            <Link className="text-emerald-300 underline" href="/delete-account">account deletion page</Link>.
-            The in-app form records a request; it does not instantly remove an
-            account. Our team must complete the requested deletion and confirm
-            its outcome.
+            Nyvon is intended for people age 18 and older. If you believe a
+            person under 18 has an account, please contact our support team.
           </p>
         </section>
       </div>
