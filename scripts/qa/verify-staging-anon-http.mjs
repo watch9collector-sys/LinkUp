@@ -124,6 +124,18 @@ await check("anonymous discovery returns redacted upcoming rows", async () => {
   assert.ok(!r.payload.some((x) => x.title === "Staging A past"), "past fixture leaked");
 });
 
+await check("anonymous beta metrics expose ONLY aggregate totals", async () => {
+  const r = await request("rpc/fetch_public_beta_metrics", { method: "POST", body: {} });
+  assert.equal(r.status, 200);
+  assert.ok(Array.isArray(r.payload) && r.payload.length === 1, "expected a single aggregate row");
+  const stats = r.payload[0];
+  assert.deepEqual(Object.keys(stats).sort(), ["connections_made", "linkups_created"]);
+  for (const key of ["connections_made", "linkups_created"]) {
+    const count = Number(stats[key]);
+    assert.ok(Number.isSafeInteger(count) && count >= 0, "expected a valid nonnegative count");
+  }
+});
+
 for (const table of ["linkups", "linkup_attendees"]) {
   await check(`anon direct table SELECT denied: ${table}`, async () => {
     expectedDenied(await request(table, { params: { select: "id", limit: 1 } }));
