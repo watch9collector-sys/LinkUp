@@ -61,8 +61,17 @@ await run("anonymous raw LinkUp reads DENIED", () =>
   rawMustBeDenied("linkups", "id,host_id,latitude,longitude"));
 await run("anonymous raw attendee reads DENIED", () =>
   rawMustBeDenied("linkup_attendees", "id,user_id,display_name"));
-await run("anonymous support-request reads DENIED", () =>
-  rawMustBeDenied("support_requests", "id,email"));
+await run("anonymous support-request data NOT EXPOSED", async () => {
+  const resp = await request("support_requests?select=id,email&limit=1", {method:"GET"});
+  if ([401,403].includes(resp.status)) return "HTTP " + resp.status;
+  // SELECT may be granted but RLS has no anonymous SELECT policy, giving
+  // 200/[] instead of 401. This proves only no records in this read, not
+  // the underlying policies: separately audit live pg_policies.
+  if (resp.status===200 && Array.isArray(resp.json) && resp.json.length===0) {
+    return "HTTP 200, zero visible rows (confirm RLS metadata separately)";
+  }
+  throw new Error("support data unexpectedly accessible; HTTP " + resp.status);
+});
 await run("redacted guest-safe discovery works", async () => {
   const resp = await request("rpc/fetch_safe_linkups", {
     method: "POST",
