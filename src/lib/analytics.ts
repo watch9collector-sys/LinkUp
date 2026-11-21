@@ -15,14 +15,12 @@ function attribution() {
   if (typeof window === "undefined") return {};
   const params = new URLSearchParams(window.location.search);
   return {
-    source: params.get("utm_source") ?? params.get("source") ?? undefined,
+    // Only approved UTM marketing fields may be attributed. Never forward
+    // host IDs, community IDs, pilot IDs, invite codes or recovery parameters.
+    source: params.get("utm_source") ?? undefined,
     medium: params.get("utm_medium") ?? undefined,
     campaign: params.get("utm_campaign") ?? undefined,
     content: params.get("utm_content") ?? undefined,
-    community_id: params.get("community_id") ?? undefined,
-    host_id: params.get("host_id") ?? undefined,
-    pilot_id: params.get("pilot_id") ?? undefined,
-    // Invite codes are bearer-like access artifacts. Do not forward them to analytics.
   };
 }
 
