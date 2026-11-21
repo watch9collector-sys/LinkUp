@@ -29,10 +29,6 @@ import {
   sessionRequiresPasswordReset,
   setPasswordResetRequestedEmail,
 } from "@/src/lib/authRecovery";
-import {
-  LINKUP_ATTENDEES_TABLE,
-  LINKUPS_TABLE,
-} from "@/src/lib/linkupsTables";
 
 function HomeTile({
   href,
@@ -66,18 +62,19 @@ function BetaMetricsSection() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [linkupsResult, attendeesResult] = await Promise.all([
-        supabase.from(LINKUPS_TABLE).select("id", { count: "exact", head: true }),
-        supabase
-          .from(LINKUP_ATTENDEES_TABLE)
-          .select("id", { count: "exact", head: true }),
-      ]);
-      if (cancelled) return;
-      if (typeof linkupsResult.count === "number") {
-        setLinkupsCreated(linkupsResult.count);
+      // Public raw-table counting must stop when privacy RLS closes.
+      // The reviewed RPC returns ONLY non-PII aggregate counts.
+      const { data, error } = await supabase.rpc("fetch_public_beta_metrics");
+      if (cancelled || error) return;
+      const stats = Array.isArray(data) ? data[0] : data;
+      if (!stats) return;
+      const linkups = Number(stats.linkups_created);
+      const connections = Number(stats.connections_made);
+      if (Number.isSafeInteger(linkups) && linkups >= 0) {
+        setLinkupsCreated(linkups);
       }
-      if (typeof attendeesResult.count === "number") {
-        setConnectionsMade(attendeesResult.count);
+      if (Number.isSafeInteger(connections) && connections >= 0) {
+        setConnectionsMade(connections);
       }
     })();
     return () => {
