@@ -52,7 +52,7 @@ export default function TermsPage() {
             these terms or protect users. Contact{" "}
             <a className="text-emerald-300 underline" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
             {" "}to report a problem, ask us to review a restriction, or request
-            account deletion. Deletion requests are processed manually.
+            account deletion. Eligible signed-in users can permanently delete their accounts after password verification. Active safety or legal reviews may require staff-assisted deletion.
           </p>
         </section>
         <section>
