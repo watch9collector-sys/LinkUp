@@ -24,7 +24,7 @@ export default function DeleteAccountInformationPage() {
           <h2 className="font-semibold text-white">Option 1 — Delete immediately in Nyvon</h2>
           <p className="text-white/70">
             Sign in → Profile → Support &amp; Legal → Delete account.
-            Enter your current password, type DELETE, confirm the warning, and select
+            Enter your current password and select
             Permanently delete my account.
           </p>
           <p>

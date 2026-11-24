@@ -14,8 +14,6 @@ type DeletionReply = { ok?: boolean; code?: string; message?: string };
 export default function DeleteAccountPage() {
   const { user, ready } = useAuthSession();
   const [password, setPassword] = useState("");
-  const [confirmation, setConfirmation] = useState("");
-  const [understood, setUnderstood] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,12 +33,12 @@ export default function DeleteAccountPage() {
 
   async function handleDelete(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!understood || confirmation !== "DELETE" || !password || !user || busy) return;
+    if (!password || !user || busy) return;
     setBusy(true);
     setError(null);
     try {
       const { data, error: functionError } = await supabase.functions.invoke<DeletionReply>("delete-account", {
-        body: { confirmation, password },
+        body: { confirmation: "DELETE", password },
       });
       let result = data;
       if (functionError) {
@@ -73,10 +71,10 @@ export default function DeleteAccountPage() {
         <h1 className="text-2xl font-bold tracking-tight text-red-200">Permanently delete your account</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-white/72">
           Delete your Nyvon account for <strong className="text-white">{user.email}</strong> now.
-          For your security, confirm your current password. This cannot be undone.
+          Enter your current password to continue.
         </p>
         <div className="mt-5 rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-3.5 text-sm leading-relaxed text-red-100" role="note">
-          Deleting your account removes your profile, photos, hosted LinkUps and memberships,
+          This action is permanent. Deleting your account removes your profile, photos, hosted LinkUps and memberships,
           and signs you out. Other attendees will lose access to LinkUps you hosted.
           Certain records may be retained when required for safety, fraud prevention, or legal compliance.
         </div>
@@ -96,29 +94,10 @@ export default function DeleteAccountPage() {
               className="mt-2 w-full rounded-xl border border-white/20 bg-white/[0.06] px-4 py-3 text-white outline-none focus:border-emerald-400"
             />
           </div>
-          <div>
-            <label htmlFor="delete-confirm" className="block text-sm font-medium text-white/90">
-              Type DELETE to confirm
-            </label>
-            <input
-              id="delete-confirm" type="text" autoComplete="off"
-              required value={confirmation} disabled={busy}
-              onChange={(e) => setConfirmation(e.target.value)}
-              className="mt-2 w-full rounded-xl border border-white/20 bg-white/[0.06] px-4 py-3 text-white outline-none focus:border-emerald-400"
-            />
-          </div>
-          <label className="flex items-start gap-3 text-sm text-white/85">
-            <input
-              type="checkbox" checked={understood} disabled={busy}
-              onChange={(e) => setUnderstood(e.target.checked)}
-              className="mt-1 h-4 w-4 shrink-0"
-            />
-            I understand that this action is permanent and removes my hosted LinkUps for other attendees.
-          </label>
           {error ? <p role="alert" className="rounded-xl border border-red-500/30 p-3 text-sm text-red-200">{error}</p> : null}
           <Button
             type="submit" variant="danger" size="md" fullWidth
-            disabled={!understood || confirmation !== "DELETE" || !password || busy}
+            disabled={!password || busy}
             loading={busy}
           >
             Permanently delete my account
