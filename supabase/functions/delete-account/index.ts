@@ -43,10 +43,10 @@ Deno.serve(async (req: Request) => {
     return reply({ ok: false, code: "request_too_large" }, 413, origin);
   }
 
-  let payload: { confirmation?: unknown; password?: unknown };
+  let payload: { confirmation?: unknown; password?: unknown } | null;
   try { payload = await req.json(); }
   catch { return reply({ ok: false, code: "invalid_request" }, 400, origin); }
-  if (payload.confirmation !== "DELETE" || typeof payload.password !== "string" || payload.password.length < 1 || payload.password.length > 1024) {
+  if (payload?.confirmation !== "DELETE" || typeof payload.password !== "string" || payload.password.length < 1 || payload.password.length > 1024) {
     return reply({ ok: false, code: "confirmation_required", message: "Enter DELETE and your current password." }, 400, origin);
   }
 
@@ -111,12 +111,10 @@ Deno.serve(async (req: Request) => {
     return reply({ ok: false, code: "manual_safety_review", message: "Deletion was paused for a safety review." }, 409, origin);
   }
 
-  let started = false;
   try {
     for (let i = 0; i < paths.length; i += 100) {
       const { error } = await admin.storage.from("profile-images").remove(paths.slice(i, i + 100));
       if (error) throw new Error("storage_cleanup_failed");
-      started = true;
     }
 
     // Clean account-linked support requests and anonymize non-FK moderation references.
@@ -127,7 +125,6 @@ Deno.serve(async (req: Request) => {
     if (b) throw new Error("support_cleanup_failed");
     const { error: c } = await admin.from("support_requests").delete().eq("email", user.email);
     if (c) throw new Error("support_cleanup_failed");
-    started = true;
 
     // Hard-delete the Auth user; FK rules cascade hosted events, attendance,
     // blocks, their self-authored reports and owned moderation actions.
@@ -137,7 +134,7 @@ Deno.serve(async (req: Request) => {
   } catch {
     return reply({
       ok: false,
-      code: started ? "manual_completion_required" : "deletion_not_started",
+      code: "manual_completion_required",
       message: "Deletion could not be fully completed. Contact nyvonsupport@gmail.com; do not repeatedly submit the request.",
     }, 503, origin);
   }
