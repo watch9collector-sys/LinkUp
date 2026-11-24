@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
+import type { AuthChangeEvent, AuthError, Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/src/lib/supabase";
 import { isUserFacingDevMode } from "@/src/lib/userFacingErrors";
 
@@ -97,6 +97,43 @@ export async function syncAuthUserAfterProfileSave(
   }
 }
 
+function isRejectedSession(error: AuthError | null): boolean {
+  return Boolean(
+    error &&
+      (error.code === "user_not_found" ||
+        error.code === "session_not_found" ||
+        error.name === "AuthSessionMissingError" ||
+        error.message === "User from sub claim in JWT does not exist"),
+  );
+}
+
+async function validateInitialSession(session: Session): Promise<Session | null> {
+  try {
+    const { data, error } = await withTimeout(
+      supabase.auth.getUser(session.access_token),
+      AUTH_SESSION_TIMEOUT_MS,
+      "Initial session validation timed out",
+    );
+    if (isRejectedSession(error)) {
+      // Avoid signing out a newer session established during validation.
+      try {
+        const { data: latest } = await supabase.auth.getSession();
+        if (latest.session?.access_token === session.access_token) {
+          await supabase.auth.signOut({ scope: "local" });
+        }
+      } catch (err: unknown) {
+        logProfileAuth("could not clear the rejected stored session", err);
+      }
+      return null;
+    }
+
+    return data.user ? { ...session, user: data.user } : session;
+  } catch (err: unknown) {
+    logProfileAuth("initial session validation unavailable", err);
+    return session;
+  }
+}
+
 async function loadInitialSession(): Promise<Session | null> {
   for (let attempt = 1; attempt <= AUTH_SESSION_MAX_ATTEMPTS; attempt++) {
     try {
@@ -109,7 +146,7 @@ async function loadInitialSession(): Promise<Session | null> {
         logProfileAuth(`getSession attempt ${attempt} error`, error.message);
         continue;
       }
-      return data.session ?? null;
+      return data.session ? validateInitialSession(data.session) : null;
     } catch (err: unknown) {
       logProfileAuth(`getSession attempt ${attempt} failed`, err);
     }
@@ -124,7 +161,7 @@ function initializeAuthSession() {
   try {
     void loadInitialSession()
       .then((session) => {
-        publishHydratedSession(session);
+        if (!currentReady) publishHydratedSession(session);
       })
       .catch((err: unknown) => {
         logProfileAuth("initial session load failed", err);
@@ -140,6 +177,8 @@ function initializeAuthSession() {
             userId: nextSession?.user?.id ?? null,
           });
         }
+
+        if (event === "INITIAL_SESSION") return;
 
         if (!nextSession && event !== "SIGNED_OUT" && currentSession) {
           currentReady = true;
