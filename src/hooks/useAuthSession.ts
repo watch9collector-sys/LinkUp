@@ -116,12 +116,16 @@ async function loadInitialSession(): Promise<Session | null> {
         continue;
       }
       if (!data.session) return null;
-      const { error: userError } = await withTimeout(
-        supabase.auth.getUser(),
-        AUTH_SESSION_TIMEOUT_MS,
-        "Session verification timed out",
-      );
-      if (isRevokedSession(userError)) return null;
+      try {
+        const { error: userError } = await withTimeout(
+          supabase.auth.getUser(),
+          AUTH_SESSION_TIMEOUT_MS,
+          "Session verification timed out",
+        );
+        if (isRevokedSession(userError)) return null;
+      } catch (err: unknown) {
+        logProfileAuth("initial session verification unavailable", err);
+      }
       return data.session;
     } catch (err: unknown) {
       logProfileAuth(`getSession attempt ${attempt} failed`, err);
