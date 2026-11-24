@@ -91,15 +91,16 @@ export default function PrivacyPage() {
           <h2 className="font-semibold text-white">Your choices and account deletion</h2>
           <p className="mt-2 text-white/68">
             You may update some profile details or contact us about access,
-            correction and deletion. You can submit a deletion request inside
-            Nyvon or without the app through the{" "}
+            correction and deletion. Eligible signed-in users can permanently
+            delete their account after password verification, which removes
+            their profile, hosted LinkUps, and memberships. Certain safety,
+            fraud-prevention, and legal records may be retained when necessary.
+            Accounts subject to an active safety or legal review may require
+            staff-assisted deletion. Users who cannot sign in may request
+            assistance using the{" "}
             <Link className="text-emerald-300 underline" href="/delete-account">
               account-deletion instructions
             </Link>.
-            A submitted request is recorded for manual verification and processing;
-            it does not immediately delete the account or all its associated data.
-            We will communicate the expected processing timeline and any
-            permissible retention when responding to a verified request.
           </p>
         </section>
 
