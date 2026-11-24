@@ -16,6 +16,7 @@ export default function AccountDeletedPage() {
     >
       <div className="space-y-5 text-white/75">
         <p>Your profile, hosted LinkUps, memberships, and profile images have been removed.
+          If analytics records are linked to your account, they are queued for deletion separately.
           Some limited information may be retained for legal, safety, or fraud-prevention reasons.</p>
         <p>If you have any questions about privacy or deletion, email{" "}
           <a className="text-emerald-300 underline" href={"mailto:" + SUPPORT_EMAIL}>{SUPPORT_EMAIL}</a>.

@@ -77,6 +77,11 @@ export default function PrivacyPage() {
         <section>
           <h2 className="font-semibold text-white">Security and retention</h2>
           <p className="mt-2 text-white/68">
+            When an account is deleted, we queue its account-linked analytics for
+            separate removal by our analytics provider. That processing can
+            continue after the account and active profile have been removed.
+          </p>
+          <p className="mt-2 text-white/68">
             We use encrypted connections and access controls to protect data,
             though no service can guarantee absolute security. Information is
             generally retained while needed to operate the service. A single
