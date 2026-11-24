@@ -14,7 +14,19 @@ security definer
 set search_path = ''
 as $function$
 begin
-  if p_user_id is null then return 'invalid_account'; end if;
+  if p_user_id is null or not exists (select 1 from auth.users where id = p_user_id) then
+    return 'invalid_account';
+  end if;
+  -- Unknown user-owned objects require manual review, not a partial automatic deletion.
+  if exists (
+    select 1 from storage.objects s
+    where (s.owner = p_user_id or s.owner_id = p_user_id::text)
+      and not (
+        s.bucket_id = 'profile-images'
+        and (s.name like ('avatars/' || p_user_id::text || '/%')
+          or s.name like ('banners/' || p_user_id::text || '/%'))
+      )
+  ) then return 'unrecognized_storage_review'; end if;
   if exists (select 1 from public.platform_founders where user_id = p_user_id) then
     return 'founder_account_review';
   end if;
