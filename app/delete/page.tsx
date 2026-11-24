@@ -5,65 +5,61 @@ import { GlassCard } from "../components/GlassCard";
 import { TextLink } from "../components/TextLink";
 import { Button } from "../components/ui/Button";
 import { PageLoading } from "../components/ui/LoadingStates";
-import { TextAreaField } from "../components/ui/FormField";
-import { useAuthSession } from "@/src/hooks/useAuthSession";
-import { submitSupportRequest } from "@/src/lib/supportApi";
-import { getDisplayName } from "@/src/lib/userDisplay";
+import { useAuthSession, setAuthSessionSnapshot } from "@/src/hooks/useAuthSession";
+import { supabase } from "@/src/lib/supabase";
 import { SUPPORT_EMAIL } from "@/src/lib/support";
+
+type DeletionReply = { ok?: boolean; code?: string; message?: string };
 
 export default function DeleteAccountPage() {
   const { user, ready } = useAuthSession();
-  const [confirmed, setConfirmed] = useState(false);
-  const [reason, setReason] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
 
-  if (!ready) {
-    return (
-      <div className="mx-auto max-w-xl py-8">
-        <PageLoading message="Loading…" />
-      </div>
-    );
-  }
-
+  if (!ready) return <PageLoading message="Loading…" />;
   if (!user) {
     return (
       <div className="mx-auto w-full max-w-xl space-y-6">
         <TextLink href="/">← Back to Home</TextLink>
         <GlassCard className="space-y-4 p-8 text-center">
           <h1 className="text-xl font-semibold text-white">Sign in required</h1>
-          <p className="text-sm text-white/60">
-            Sign in before requesting account deletion so we can match your account.
-          </p>
+          <p className="text-sm text-white/60">Sign in before deleting your account so we can verify your identity.</p>
           <TextLink href="/">Go to sign in</TextLink>
         </GlassCard>
       </div>
     );
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleDelete(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!confirmed || !user) return;
-    setError(null);
+    if (!password || !user || busy) return;
     setBusy(true);
+    setError(null);
     try {
-      const result = await submitSupportRequest({
-        request_type: "delete_account",
-        user_id: user.id,
-        name: getDisplayName(user),
-        email: user.email ?? "",
-        subject: "Account deletion request",
-        message:
-          reason.trim() ||
-          "User requested permanent account deletion via the in-app form.",
+      const { data, error: functionError } = await supabase.functions.invoke<DeletionReply>("delete-account", {
+        body: { confirmation: "DELETE", password },
       });
-      if (!result.ok) {
-        setError(result.error);
-        return;
+      let result = data;
+      if (functionError) {
+        const response = (functionError as { context?: unknown }).context;
+        if (response instanceof Response) {
+          try { result = (await response.clone().json()) as DeletionReply; }
+          catch { /* Some function failures have no JSON body. */ }
+        }
+        throw new Error(result?.message || "Account deletion could not be completed. Contact support for help.");
       }
-      setSubmitted(true);
-    } finally {
+      if (!result?.ok) throw new Error(result?.message || "Deletion was not confirmed. Contact support.");
+
+      // The account and sessions are now removed server-side. Erase local auth
+      // immediately and hard-navigate to prevent stale signed-in UI.
+      void supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      try { window.localStorage.removeItem("linkup-auth-token"); }
+      catch { /* Private-browsing storage may be unavailable. */ }
+      setAuthSessionSnapshot(null);
+      window.location.replace("/account-deleted");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Deletion failed. Contact support.");
       setBusy(false);
     }
   }
@@ -71,74 +67,42 @@ export default function DeleteAccountPage() {
   return (
     <div className="mx-auto w-full max-w-xl space-y-6">
       <TextLink href="/profile">← Back to profile</TextLink>
-
       <GlassCard>
-        <h1 className="text-2xl font-bold tracking-tight text-red-200">
-          Delete account
-        </h1>
-        <p className="mt-2 text-[15px] leading-relaxed text-white/72">
-          Submit a deletion request for{" "}
-          <span className="text-emerald-300">{user.email}</span>. Our team processes
-          requests manually. For urgent help, contact{" "}
-          <span className="text-emerald-300">{SUPPORT_EMAIL}</span>.
+        <h1 className="text-2xl font-bold tracking-tight text-red-200">Permanently delete your account</h1>
+        <p className="mt-3 text-[15px] leading-relaxed text-white/72">
+          Delete your Nyvon account for <strong className="text-white">{user.email}</strong> now.
+          Enter your current password to continue.
+        </p>
+        <div className="mt-5 rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-3.5 text-sm leading-relaxed text-red-100" role="note">
+          This action is permanent. Deleting your account removes your profile, photos, hosted LinkUps and memberships,
+          and signs you out. Other attendees will lose access to LinkUps you hosted.
+          Certain records may be retained when required for safety, fraud prevention, or legal compliance.
+        </div>
+        <p className="mt-4 text-sm leading-relaxed text-white/60">
+          Accounts subject to an active safety or legal review require staff-assisted deletion.
+          Contact <a className="text-emerald-300 underline" href={"mailto:" + SUPPORT_EMAIL}>{SUPPORT_EMAIL}</a> if that applies,
+          or if you can no longer access your account.
         </p>
 
-        {submitted ? (
-          <p className="mt-8 text-center text-[15px] text-white/88">
-            Your deletion request was recorded. We may email you from{" "}
-            <span className="text-emerald-300">{SUPPORT_EMAIL}</span> with confirmation
-            and timing.
-          </p>
-        ) : (
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            <div
-              className="rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-3.5 text-sm leading-relaxed text-red-100"
-              role="alert"
-            >
-              <strong className="font-semibold text-red-50">Warning:</strong>{" "}
-              Account deletion is permanent and cannot be undone.
-            </div>
-
-            <TextAreaField
-              id="reason"
-              label="Reason for deletion"
-              rows={4}
-              placeholder="Optional — tell us what we could improve"
-              value={reason}
-              onChange={(ev) => setReason(ev.target.value)}
+        <form onSubmit={(e) => { void handleDelete(e); }} className="mt-7 space-y-5">
+          <div>
+            <label htmlFor="delete-password" className="block text-sm font-medium text-white/90">Current password</label>
+            <input
+              id="delete-password" type="password" autoComplete="current-password"
+              required value={password} disabled={busy}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-white/20 bg-white/[0.06] px-4 py-3 text-white outline-none focus:border-emerald-400"
             />
-
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/12 bg-white/[0.04] px-4 py-3.5 text-[15px] text-white/85">
-              <input
-                type="checkbox"
-                checked={confirmed}
-                onChange={(e) => setConfirmed(e.target.checked)}
-                className="mt-1 h-4 w-4 shrink-0 rounded border-white/25 bg-[#0B0F14]/60 text-emerald-500 focus:ring-emerald-500/45"
-              />
-              <span>I understand this action is permanent.</span>
-            </label>
-
-            {error ? (
-              <p
-                className="rounded-xl border border-red-500/20 bg-red-500/8 px-4 py-3 text-sm text-red-200/95"
-                role="alert"
-              >
-                {error}
-              </p>
-            ) : null}
-
-            <Button
-              type="submit"
-              variant="danger"
-              size="md"
-              fullWidth
-              disabled={!confirmed}
-              loading={busy}
-            >
-              Submit deletion request
-            </Button>
-          </form>
-        )}
+          </div>
+          {error ? <p role="alert" className="rounded-xl border border-red-500/30 p-3 text-sm text-red-200">{error}</p> : null}
+          <Button
+            type="submit" variant="danger" size="md" fullWidth
+            disabled={!password || busy}
+            loading={busy}
+          >
+            Permanently delete my account
+          </Button>
+        </form>
       </GlassCard>
     </div>
   );

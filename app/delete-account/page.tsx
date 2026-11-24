@@ -5,8 +5,7 @@ import { SUPPORT_EMAIL } from "@/src/lib/support";
 
 export const metadata: Metadata = {
   title: "Delete Your Nyvon Account",
-  description:
-    "Request deletion of your Nyvon account and associated personal data, with or without the app.",
+  description: "Delete your Nyvon account immediately when eligible, or request staff-assisted deletion.",
 };
 
 export default function DeleteAccountInformationPage() {
@@ -17,61 +16,54 @@ export default function DeleteAccountInformationPage() {
     >
       <div className="space-y-7">
         <p className="text-white/75">
-          You can request deletion of your Nyvon account and associated
-          personal data at any time, even if you no longer have the app installed.
+          You can permanently delete an eligible Nyvon account directly in the app
+          after verifying your password. You can also request deletion without the app.
         </p>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-white">Option 1 — Inside Nyvon</h2>
+          <h2 className="font-semibold text-white">Option 1 — Delete immediately in Nyvon</h2>
           <p className="text-white/70">
-            Sign in → Profile → Support &amp; Legal → Delete account → Confirm → Submit deletion request.
+            Sign in → Profile → Support &amp; Legal → Delete account.
+            Enter your current password and select
+            Permanently delete my account.
           </p>
           <p>
-            <Link
-              href="/delete"
-              className="font-medium text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
-            >
-              Open the in-app deletion request form
+            <Link href="/delete" className="font-medium text-emerald-300 underline underline-offset-4 hover:text-emerald-200">
+              Open the in-app deletion page
             </Link>
+          </p>
+          <p className="text-white/70">
+            Your account, profile photos, memberships, and LinkUps you host are removed;
+            you are signed out. Hosted LinkUps disappear for attendees, too.
+            Deletion cannot be undone.
           </p>
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-white">Option 2 — Without the app</h2>
+          <h2 className="font-semibold text-white">Option 2 — Without access to your account</h2>
           <p className="text-white/70">
             Email{" "}
-            <a
-              href={`mailto:${SUPPORT_EMAIL}?subject=Nyvon%20Account%20Deletion%20Request`}
-              className="font-medium text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
-            >
+            <a href={"mailto:" + SUPPORT_EMAIL + "?subject=Nyvon%20Account%20Deletion%20Request"}
+              className="font-medium text-emerald-300 underline underline-offset-4 hover:text-emerald-200">
               {SUPPORT_EMAIL}
             </a>{" "}
             with the subject <strong className="text-white">Nyvon Account Deletion Request</strong>.
+            Include the email address associated with your account; never send your password.
           </p>
           <p className="text-white/70">
-            Include the email address associated with your Nyvon account.
-            Never send your password.
+            We will verify your identity before deleting your account.
           </p>
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-semibold text-white">What happens next</h2>
+          <h2 className="font-semibold text-white">Retention and safety reviews</h2>
           <p className="text-white/70">
-            Our team will verify account ownership and process the deletion
-            request manually. Submitting a request does not immediately delete
-            your account. We will confirm the processing timeline and any
-            information we must retain for legal or security reasons when
-            responding to your verified request. Completed account deletion is
-            permanent and cannot be undone.
-          </p>
-          <p className="text-white/70">
-            For questions about data deletion or retention, contact{" "}
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="font-medium text-emerald-300 underline underline-offset-4 hover:text-emerald-200"
-            >
-              {SUPPORT_EMAIL}
-            </a>.
+            Accounts with an active safety, fraud, or legal preservation matter may require
+            staff-assisted review instead of automatic deletion. Limited records may be
+            retained where necessary for applicable legal or safety obligations.
+            Contact{" "}
+            <a href={"mailto:" + SUPPORT_EMAIL} className="text-emerald-300 underline">{SUPPORT_EMAIL}</a>
+            {" "}to discuss a deletion exception or related data request.
           </p>
         </section>
       </div>

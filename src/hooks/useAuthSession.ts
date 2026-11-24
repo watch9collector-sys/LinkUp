@@ -97,6 +97,12 @@ export async function syncAuthUserAfterProfileSave(
   }
 }
 
+function isRevokedSession(error: { code?: string; name: string } | null): boolean {
+  return error?.code === "session_not_found" ||
+    error?.code === "user_not_found" ||
+    error?.name === "AuthSessionMissingError";
+}
+
 async function loadInitialSession(): Promise<Session | null> {
   for (let attempt = 1; attempt <= AUTH_SESSION_MAX_ATTEMPTS; attempt++) {
     try {
@@ -109,7 +115,18 @@ async function loadInitialSession(): Promise<Session | null> {
         logProfileAuth(`getSession attempt ${attempt} error`, error.message);
         continue;
       }
-      return data.session ?? null;
+      if (!data.session) return null;
+      try {
+        const { error: userError } = await withTimeout(
+          supabase.auth.getUser(),
+          AUTH_SESSION_TIMEOUT_MS,
+          "Session verification timed out",
+        );
+        if (isRevokedSession(userError)) return null;
+      } catch (err: unknown) {
+        logProfileAuth("initial session verification unavailable", err);
+      }
+      return data.session;
     } catch (err: unknown) {
       logProfileAuth(`getSession attempt ${attempt} failed`, err);
     }
@@ -124,7 +141,7 @@ function initializeAuthSession() {
   try {
     void loadInitialSession()
       .then((session) => {
-        publishHydratedSession(session);
+        if (!currentReady) publishHydratedSession(session);
       })
       .catch((err: unknown) => {
         logProfileAuth("initial session load failed", err);
@@ -141,6 +158,8 @@ function initializeAuthSession() {
           });
         }
 
+        if (event === "INITIAL_SESSION") return;
+
         if (!nextSession && event !== "SIGNED_OUT" && currentSession) {
           currentReady = true;
           notify();
@@ -151,6 +170,11 @@ function initializeAuthSession() {
       },
     );
     void authState.data.subscription;
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && currentSession) {
+        void refreshAuthSessionSnapshot();
+      }
+    });
   } catch (err: unknown) {
     logProfileAuth("auth setup failed", err);
     publishHydratedSession(null);
@@ -162,12 +186,18 @@ export function setAuthSessionSnapshot(nextSession: Session | null) {
 }
 
 export async function refreshAuthSessionSnapshot() {
+  const sessionAtStart = currentSession;
   try {
     const { data, error } = await withTimeout(
       supabase.auth.getUser(),
       AUTH_SESSION_TIMEOUT_MS,
       "Session refresh timed out",
     );
+    if (currentSession !== sessionAtStart) return currentSession;
+    if (isRevokedSession(error)) {
+      publishHydratedSession(null);
+      return null;
+    }
     if (error || !data.user) {
       logProfileAuth("refresh getUser error", error ?? "no user");
       return currentSession;
